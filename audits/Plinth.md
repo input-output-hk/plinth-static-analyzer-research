@@ -2,7 +2,7 @@
 
 ## MuesliSwap
 
-**Description**  
+**Description**
 From: MLabs To: MuesliSwapTeam
 
 **Summary:** MuseliSwap's DEX is based on a decentralized version of the traditional order book style exchange used in stock markets. Users submit trades to a smart contract and decentralized matchmakers scan the blockchain to settle trades, charging a small fee to do so.
@@ -27,7 +27,7 @@ From: MLabs To: MuesliSwapTeam
 
 ## AADA
 
-**Description**  
+**Description**
 From: VacuumLabs To: AADA Finance
 
 **Summary:** A peer-to-peer lending protocol that allows users to borrow and lend crypto assets directly on the blockchain. Borrowers can request loans by posting collateral, and lenders can provide the requested loan amount. The protocol includes mechanisms for loan repayment, interest calculation, and collateral liquidation if borrowers default.
@@ -64,7 +64,7 @@ From: VacuumLabs To: AADA Finance
 
 ## AADA Debt/Request
 
-**Description**  
+**Description**
 From: VacuumLabs To: AADA Finance
 
 **Summary:** Another VacuumLabs audit of AADA Finance's P2P lending protocol. In this version, the Lender creates a "debt request" specifying loan terms, and the Borrower fulfills it by locking collateral. Both parties receive bond NFTs (Lender NFT and Borrower NFT) that can be traded, transferring responsibilities with ownership.
@@ -80,7 +80,7 @@ From: VacuumLabs To: AADA Finance
 
 ## Ardana dUSD
 
-**Description**  
+**Description**
 From: VacuumLabs To: ArdanaLabs
 
 **Summary:** A stablecoin protocol on Cardano that creates dUSD backed by ADA collateral. Core components include Vaults (hold collateral and manage loans), Buffer (stabilizes dUSD price via auctions), Price Module (aggregates price data), and Protocol Parameters Module. Users can create vaults, take loans by minting dUSD, and face liquidation if collateralization ratio drops below threshold.
@@ -107,7 +107,7 @@ From: VacuumLabs To: ArdanaLabs
 
 ## Cerra P2P Lending
 
-**Description**  
+**Description**
 From: Tweag To: Cerra
 
 **Summary:** A peer-to-peer lending protocol that empowers users to leverage or hedge their cryptocurrency holdings.
@@ -141,7 +141,7 @@ From: Tweag To: Cerra
 
 ## Cerra AMM
 
-**Description**  
+**Description**
 From: Tweag To: Cerra
 
 **Findings**
@@ -162,7 +162,7 @@ From: Tweag To: Cerra
 
 ## Djed
 
-**Description**  
+**Description**
 From: Tweag To: IOG
 
 **Summary:** Cardano's native overcollateralized stablecoin, developed by IOG and powered by COTI. DJED is backed by ADA and uses SHEN as a reserve coin.
@@ -197,7 +197,7 @@ From: Tweag To: IOG
 
 ## Optim Bonds and Pools
 
-**Description**  
+**Description**
 From: Tweag To: Optim
 
 **Summary:** Users of the Optim protocol deposit their assets into pools called vaults. These pools of funds are invested by smart contracts that are coded with one or more investment strategies and designed to allocate and reallocate funds to maximize the assets yield potential. Each vault deals with a different element of yield generating Cardano DeFi.
