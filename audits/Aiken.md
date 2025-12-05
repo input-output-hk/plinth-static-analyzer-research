@@ -172,3 +172,43 @@ From: TxPipe To: Nuvola
 - **NUV-302. Spendable loan UTxO without a loan token:** Spend validation requires token burning, making UTxOs without tokens permanently unspendable. Requires understanding business logic
 - **NUV-304. Optimization for the Apply Loan operation:** Multiple opportunities to reduce computation costs through better data handling and removing redundant checks. Requires understanding performance implications and protocol-specific code structure
 
+## Private Audit #03
+
+**Description**
+[No description provided]
+
+**Summary:** [No summary provided]
+
+**Findings**
+
+**May be relevant**
+
+- **ID-01. Unvalidated Datum on Creation and Update:** UTxO datum is not checked on creation and update transactions. May require understanding if all datum fields actually need validation. Detectable pattern: outputs to script addresses without datum validation or with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
+
+## Private Audit #12
+
+**Description**
+[No description provided]
+
+**Summary:** [No summary provided]
+
+**Findings**
+
+**Relevant**
+
+- **ID-01. Unvalidated Output Datum:** Validator doesn't validate datum field of outputs to script addresses, allowing datum hashes which require preimages to spend. Detectable pattern: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
+- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees. Detectable pattern: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+- **ID-03. Trash Tokens Allowed:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs. Detectable pattern: subset value validation instead of equality check [TRASH-TOKENS]
+
+## Private Audit #15
+
+**Description**
+[No description provided]
+
+**Summary:** [No summary provided]
+
+**Findings**
+
+**Relevant**
+
+- **ID-01. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees. Detectable pattern: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
