@@ -224,3 +224,17 @@ From: Tweag To: Optim
 - **2.3.3.1. Buffer boundary is open on the right:** Validator checks buffer ∈ [0, duration) instead of [0, duration], unclear why boundary case is excluded. Design decision requiring clarification, not a detectable code pattern
 - **2.3.3.2. Initial margin is unchecked:** Validator enforces margin constraints when adding to existing bonds but not during bond creation, allowing arbitrary values including non-ADA tokens as initial margin. Requires semantic understanding that arbitrary initial margin values are unintended and should be restricted like margin additions
 - **2.3.3.3. Bond tokens and pool tokens are handled differently:** Conceptually similar tokens are handled with different burning strategies (all-at-once vs incremental), creating inconsistency. Design pattern concern about consistency and maintainability
+
+## Private Audit #1
+
+**Description**
+[No description provided]
+
+**Summary:** [No summary provided]
+
+**Findings**
+
+**Relevant**
+
+- **ID-01. Incomplete Currency Symbol Validation:** Function validates token name matches but doesn't properly check currency symbol, allowing tokens with same name but different policies to pollute UTxOs. Detectable pattern: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **ID-02. Unvalidated Reference Script Field:** Protocol outputs don't validate or check reference script field, allowing arbitrary reference scripts to be attached and increase future transaction fees. Detectable pattern: output validation logic that ignores reference script field entirely [UNVALIDATED-REFERENCE-SCRIPT]
