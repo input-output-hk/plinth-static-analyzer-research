@@ -89,3 +89,68 @@ From: VacuumLabs To: Liqwid Labs
 - **LIQV1-407. The variable supplyDiff has multiple meanings:** Variable supplyDiff has different semantic meanings in Action UTxOs versus Batch UTxOs. Naming issue
 - **LIQV1-408. Reserve field in Action datum may be imprecise:** Separate rounding of reserve datum field and actual value causes discrepancies. Logic bug requiring understanding business logic
 - **LIQV1-409. Other code best practices:** Multiple code quality issues including misleading names, duplicate code, dead code, and outdated comments. Code quality and maintainability issues already caught by standard tooling
+
+## WingRiders v2
+**Description**
+From: VacuumLabs To: WingRiders
+
+**Summary:** WingRiders v2 is an extension and rewrite of the WingRiders DEX supporting both constant-product and stableswap AMM pools. The protocol heavily relies on authority tokens, datums, and scripted accounting, which introduces multiple risks related to unchecked parameter updates, invariant enforcement, and output composition.
+
+**Findings**
+
+**Relevant**
+
+- **WR2-201. Anyone can block script fee beneficiary funds**: Validator doesn't validate datum attached to outputs sent to script addresses, allowing arbitrary datums that may prevent beneficiary script from spending. Detectable pattern: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
+- **WR2-303 Additional tokens may make compensation output unspendable**: Compensation outputs allowed arbitrary extra tokens, potentially breaking downstream scripts. Detectable pattern: subset value validation instead of equality check [TRASH-TOKENS]
+- **WR2-405. Zap-in swapA is not sanitized**: Numeric redeemer parameter used directly in arithmetic operations without any validation. Detectable pattern: redeemer fields (untrusted user input) used without validation
+
+
+**Not relevant**
+
+- **WR2-001. Fee authority can manipulate treasury reserve fields**: Validator allows fee authority to update pool fees but doesn't check that treasury reserve datum fields remain unchanged, enabling manipulation of reserve values. Requires semantic understanding of which datum fields should be immutable
+- **WR2-002. Requests can be unlocked by agents**: Function uses hardcoded constant as initial index value, allowing attacker to use redeemer indices that cause duplicate input selection. Logic error
+- **WR2-003. Malicious fee change can block all liquidity**: Fee authorities can set fee values to extremely large numbers that cause subsequent transactions to exceed transaction size limits, locking all liquidity. Requires understanding the protocol's business logic
+- **WR2-101. Emergency withdrawal in stableswap pool breaks invariant**: Update in invariant parameter in pool datum isn't validated. Requires understanding which datum fields should be updated for specific operations
+- **WR2-102. Stableswap zap-in formulas are wrong about non-pool fees**: Formulas from previous protocol version not updated to reflect new fee structure, causing incorrect fee calculations. Protocol design issue
+- **WR2-103. Adding staking rewards to stableswap pool breaks invariant**: Update in invariant parameter in pool datum isn't validated. Requires understanding which datum fields should be updated for specific operations
+- **WR2-301. Fee auth token holders can withdraw accumulated project and reserve fees**: Fee authority can change beneficiary addresses and immediately withdraw all accumulated fees to new addresses. Protocol governance and trust model issue
+- **WR2-302. pinitialStableswapPoolCorrect does not check agentFeeAda value**: Pool creation doesn't validate fee value, allowing arbitrary values including negative numbers. Requires understanding which datum fields should have bounds validation
+- **WR2-401. Dead code**: Unused functions and types throughout the codebase. Already caught by standard tooling
+- **WR2-402. Documentation**: Incorrect, outdated, and missing documentation throughout codebase
+- **WR2-403. Naming**: Unclear, inconsistent, and misleading variable and function names throughout codebase
+- **WR2-404. feeInBasis semantics and naming**: Constant semantics changed from previous version but naming and documentation not updated to reflect new meaning. Code quality and documentation issue
+
+## MELD Token Migration
+
+**Description**
+From: VacuumLabs To: Liqwid Labs
+
+**Summary:** The protocol migrates old Meld tokens to new ones at a 1:1 ratio by requiring users to lock their old tokens in Locker UTxOs, after which they can mint the same amount of new tokens. Since the old token policy does not allow burning, the locked tokens are permanently frozen in Archive UTxOs. Locker UTxOs can later be batched into Cleanup transactions that move all old tokens into Archive UTxOs, returning the extra Ada to users while keeping the Locker fee as a reward for the batcher. Archive UTxOs can be public or controlled by a specific public key, and old tokens can only move between Archives, enabling secure consolidation and recovery of min-Ada when merging Archives with proper authorization.
+
+**Findings**
+
+**Relevant**
+
+- **MTOK-202. Filling up the UTxOs with arbitrary tokens**: Validator doesn't restrict which tokens can be included in Archive and Locker UTxOs, allowing attackers to bloat them with arbitrary tokens and cause transactions to hit size limits. Detectable pattern: subset value validation instead of exact equality check [TRASH-TOKENS]
+- **MTOK-302. Denial of service of the Archive**: Archive UTxO can be included in arbitrary transactions without performing its intended function (adding tokens or processing Lockers), enabling DoS attacks. Detectable pattern: operations that succeed without modifying state [UNCHANGED-STATE]
+
+**Worth Noting**
+
+- **MTOK-402. Staking credential of an Archive disallows Archive merging**: Validator compares full addresses including staking credentials, preventing merging of Archives with different staking parts. Requires understanding whether staking credentials should be part of address validation. Although this appears to be a semantic issue, worth investigating as this may contradict an existing rule about address comparison
+
+```haskell
+plustan04 :: Inspection
+plustan04 = mkAntiPatternInspection (Id "PLU-STAN-04") "Usage of eq instance of ScriptHash/PublicKeyHash/Credential"
+    (FindAst pat)
+    & descriptionL .~ "Usage of eq instance of script-hash / pubkeyhash / payment credential "
+    & solutionL .~
+        [ "Potential staking value theft might want to prefer eq comparison of address" ]
+    & severityL .~ Warning
+```
+
+**Not relevant**
+
+- **MTOK-201 Merging of Archive UTxOs leads to unwarranted gains**: Whoever performs the merging of Archive UTxOs can claim the min-ADA from the inputs for themselves. Economic/fairness issue
+- **MTOK-301 High value of ldRefundAMount freezes min-Ada**: ldRefundAmount datum field determines the amount of Ada that is refunded during the Cleanup tx, but if the amount is set higher than the amount of Ada present, whoever does the Cleanup has to provide the extra Ada. Requires understanding what datum fields represent in business logic
+- **MTOK-401 Locker fee can disincentivize the use of the standard workflow**: The standard workflow leads to a total cost equal to the Locker fee plus tx fees. Alternatively it could be just the min-Ada and tx fees. (Setting Locker Fees to high can disincentivize users to use the intended standard flow). Protocol economics issue
+

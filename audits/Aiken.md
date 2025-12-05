@@ -212,3 +212,130 @@ From: TxPipe To: Nuvola
 **Relevant**
 
 - **ID-01. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees. Detectable pattern: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+
+## Splash Protocol Stableswap (Splash Dex - draft)
+
+**Description**
+From: AnastasiaLabs To: Spectrum Labs
+
+**Summary:** Splash is a decentralized open-source protocol for efficient market-making and trading on Cardano.
+
+**Findings**
+
+**Relevant**
+
+- **ID-201. Restricted token dust attack**: Validator checks input and output values that have same policy IDs but doesn't verify same token names within those policies, allowing attackers to add arbitrary tokens under the same policy. Detectable pattern: value comparison using only `policies()` equality without validating complete asset list (policy + token name pairs) [INCOMPLETE-TOKEN-VALIDATION] [TRASH-TOKENS]
+- **ID-301. Zero spam**: Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. It should ensure a minimal amount is actually transacted. Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
+- **ID-401. DAO can change the pool unrestricted**: Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum. Detectable pattern: input selection by redeemer-provided index without validating presence of identifying NFT at that input [UNVALIDATED-INPUT-INDEX]
+
+**May be relevant**
+
+- **ID-501. Wrong usage of DAO action validator script**: Pool validator expects DAO script hash to be used as staking credential, but DAO is implemented as spending validator (spend keyword) instead of staking validator (withdraw keyword), causing type mismatch that bypasses validation when executed in staking context. Detectable pattern: script hash used in staking context but corresponding validator declared with wrong validator type keyword
+
+**Not relevant**
+
+- **ID-302. Pool invariant can be violated at dao change**: DAO action allows changing amplification parameter an2n without validating the stableswap invariant relationship with reserve amounts, causing inconsistent swap behavior. Requires understanding protocol’s business logic
+- **ID-202. Inconsistent protocol fees**: Protocol validates individual bounds for lp_fee_num and protocol_fee_num but doesn't enforce their relationship, allowing lp_fee_num + protocol_fee_num > denom and breaking all swap transactions. Requires understanding business logic to determine which fields should have relational constraints
+- **ID-101. Order types may be vulnerable to frontrunning**: Pool doesn't restrict which order contracts can interact with it. Design decision about permissionless interoperability
+- **ID-102. Incorrect assumption in code**: Default branch in swap validation assumes specific delta conditions without checking them, allowing unexpected cases to execute. Logic bug requiring semantic understanding of valid swap cases and business logic
+
+
+## AMM Dex v2
+
+**Description**
+From: Certik To: MinSwap Labs
+
+**Summary:** Minswap is a Decentralized Exchange (DEX). The purpose of a DEX is to enable permissionless trading of token pairs. For each swap, a fee is taken, which goes to the Liquidity Providers (LPs). Anyone can provide Liquidity as well, hence profits are decentralized.
+
+**Findings**
+
+**Not relevant**
+
+- **FAC-01. Creation of pools with invalid parameters**: Validator checks datum fields match calculated values but doesn't validate reserves and liquidity are positive, allowing creation of non-functional pools with zero reserves. Requires understanding business logic to determine which datum fields need bounds validation
+- **MIN-01. Logical issue in fee settings**: Validator checks fee percentage ranges but doesn't prevent setting both numerator and denominator to zero, causing division by zero errors in fee calculations. Requires understanding business logic
+- **VAL-01. Centralization related risks**: Privileged admin and batcher tokens grant special permissions that could be abused if compromised. Protocol governance and trust model design issue, not a code pattern
+- **FAC-02. Pool creation allows complete asset withdrawal**: Pool mints LP tokens equal to sqrt(reserve_a * reserve_b), allowing LPs to fully withdraw reserves and make the pool non-functional. Protocol economic design issue that requires understanding the business logic
+- **ORD-02. Missing check on io_ratio_denominator**: Validation checks io_ratio_numerator twice instead of checking both numerator and denominator, leaving denominator unchecked. Copy-paste error already caught by standard tooling
+- **AUT-01. Incorrect comment**: Comment placed in front of wrong redeemer type. Documentation issue
+GLOBAL-01. Unit test documentation: Project lacks comprehensive unit tests and test coverage documentation. Testing and QA practice issue, not a code pattern
+- **MIN-02. TODO comments**: Codebase contains TODO comments indicating unfinished tasks. Code maintenance issue
+- **ORD-01. Missing formulas for WithdrawImbalance and PartialSwap**: Documentation lacks formulas for certain order types, marked with TODO placeholders. Documentation issue
+- **ORD-03. Typos**: Recurring typographical errors in comments and messages throughout codebase. Code style issue already caught by spell-checkers
+- **MAT-01. Potential optimization in math.calculate_withdraw_imbalance()**: Function could skip calculations when ratios are close enough that integer rounding would yield zero adjustment anyway. Requires understanding of acceptable tolerance thresholds
+
+## Forwards
+
+**Description**
+From: TxPipe To: Strike Finance
+
+**Summary:** The Strike Forwards protocol is a Cardano on-chain system that enables two users to create a decentralized forward contract to exchange assets at a future date for a pre-agreed price. One user creates a forward by locking collateral and parameters, another accepts it by matching collateral, and later both parties deposit their respective assets to settle. If deadlines pass without proper settlement, liquidation mechanisms redistribute collateral and burn control tokens. The protocol relies on multiple validators (Forwards, Collateral, Agreement, Liquidate) and strict token minting/burning rules to enforce correct execution.
+
+**Findings**
+
+**Relevant**
+
+- **STF-001. UTxO address not validated in Create Forward operation**: Minting policy validates datum and value of output UTxO where token is minted but doesn't verify destination address, allowing tokens to be redirected to arbitrary addresses instead of the Forwards validator. Detectable pattern: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
+- **STF-005. Double counting of tokens in values**: Using subset for value validation instead of exact equality allows trash tokens to bloat UTxOs and enables double counting when the same token serves multiple roles, allowing attackers to satisfy multiple checks with overlapping tokens. Detectable pattern: subset value validation instead of equality check [TRASH-TOKENS]
+- **STF-201. Prevent inclusion of reference scripts**: Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees. Detectable pattern: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+- **STF-301. Do Datum comparisons in Data**: Datum comparisons upcast output datum from Data to type rather than downcasting expected datum to Data, which is more expensive. Detectable pattern: datum equality checks using upcast instead of downcast
+
+**May be relevant**
+
+- **STF-003. Double satisfaction in operations that require token burning**: Validator validates exact number of tokens burned in transaction without ensuring only one validator input is spent, allowing attacker to batch multiple UTxOs and burn fewer tokens than required. Detectable pattern: aggregate mint/burn validation without input uniqueness check [DOUBLE-SATISFACTION]
+- **STF-004. Missing validations in Accept Forward operation**: Validator doesn't verify token minting occurs, doesn't validate collateral UTxO contains required token quantity, and allows accepting forwards with exercise dates in the past. Detectable pattern: Minting policy that doesn't do any validation at all regarding the tokens being minted.
+- **STF-006. One Side Deposit can be performed multiple times**: Validator validates output datum boolean fields without checking input datum state, allowing operation to be repeated and reset deposit flags, enabling asset theft. Detectable pattern: output datum validation without corresponding input datum validation [PARTIAL-UNVALIDATED-DATUM]
+- **STF-007 Missing datum fields validation in Create Forward**: Critical datum fields (asset equality, negative amounts, timestamps) are not validated at forward creation. May require understanding if all datum fields actually need validation. [PARTIAL-UNVALIDATED-DATUM]
+
+**Not relevant**
+
+- **STF-002. Potential loss of collateral if neither party deposits the asset**: After the exercise date, if neither party has deposited assets, the Collateral UTxO becomes unspendable because no operation covers this state, permanently locking collaterals. Requires understanding protocol's business logic
+- **STF-101. Users could deposit assets after the exercise date has passed**: Validator uses lower bound of validity range to check deadline not passed, allowing users to set past lower bound while transaction executes after deadline. Detectable pattern: lower vs upper bound usage for deadline checks, but determining correct bound requires understanding check semantics
+- **STF-202. One Side Deposit can be bypassed**: Both Sides Deposit operation doesn't verify that one party has already deposited, allowing users to run it when neither party has deposited and gain control of both collaterals. Requires understanding protocol's business logic
+- **STF-203. Party identity can be forged**: Redeemer specifies which party performs deposit operation without validator verifying that party's signature, allowing anyone to submit transactions claiming to be either party. Requires understanding protocol's authorization model
+- **STF-302. Clean up output lookup in Both Sides Deposit**: Multiple filter operations used to identify specific outputs instead of pattern matching on filtered list. Code organization suggestion
+- **STF-303. Standardize the output lookups**: Output lookups use inconsistent filtering approaches (script hash, full address, or token presence) across different operations. Code organization suggestion
+- **STF-304. Cleanup output lookup in Accept Forwards**: Complex find implementation used instead of simpler pattern matching to locate single output. Code organization suggestion
+- **STF-305. Various recommendations for the Types module**: Multiple type design improvements including using ADTs instead of Int for roles, using stdlib types, refactoring datum structure, removing unused fields, and renaming for clarity. Code quality and design suggestions
+
+## Sundae Swap V3
+
+**Description**
+From: TxPipe To: Sundae Labs
+
+**Summary:** SundaeSwap is a decentralized exchange built for the Cardano blockchain. It allows participants of the blockchain to provide liquidity and create a market for others to exchange their native tokens. In return, swappers pay a small fee and liquidity providers earn a return on their deposit.
+
+**Findings**
+
+**Relevant**
+
+- **SSW-001. Create pool doesn't validate the pool output address**: Minting policy mints pool NFT without verifying destination address, allowing attacker to mint NFT to their wallet and impersonate pools to steal order funds. Detectable pattern: minting policy missing destination address validation [MISSING-ADDRESS-VALIDATION]
+- **SSW-002. Pool output address is not correctly checked in scoop operation**: PoolScoop redeemer doesn't validate payment credential of continuing pool output, allowing scooper to redirect pool funds to arbitrary address. Detectable pattern: continuing output without payment credential validation [MISSING-ADDRESS-VALIDATION]
+- **SSW-101. Settings datum size is limited forever by the initially locked ADA**: Settings validator enforces exact value equality preventing adding ADA when datum grows and requires higher minUTxO. Detectable pattern: exact ADA/lovelace equality on continuing output values without accounting for variable minUTxO requirements [STRICT-VALUE-EQUALITY]
+- **SSW-202. Metadata output datum not checked in pool create**: Pool creation doesn't validate metadata output has datum, potentially creating unspendable UTxO if metadata address is a script. Detectable pattern: outputs to addresses without datum validation [UNVALIDATED-DATUM]
+- **SSW-308. No checks on settings UTxO when it is created**: Settings NFT minting policy validates minting but not destination address or initial UTxO state. Detectable pattern: minting without validating initial conditions, but determining correct initial state requires protocol understanding [MISSING-ADDRESS-VALIDATION]
+- **SSW-313. UpdatePoolFees doesn't require the settings UTxO as reference input**: Validator requires settings UTxO as reference input for UpdatePoolFees but doesn't use it, creating unnecessary off-chain requirement. Detectable pattern: reference input required but never accessed in validation logic
+
+**May be relevant**
+
+- **SSW-203 Create pool doesn't validate `fees_per_10_thousand` in pool output datum**: `fees_per_10_thousand` is not checked. May require understanding if all datum fields actually need validation. [PARTIAL-UNVALIDATED-DATUM]
+
+**Not relevant**
+
+- **SSW-102. Order Scoop redeemer enforces one and only one withdrawal**: Order validator enforces exactly one withdrawal but Strategy Orders with Script authorization require additional withdrawal, causing transaction failures. Requires understanding protocol multi-validator coordination and business logic
+- **SSW-201. Create pool doesn't validate if ADA is not in the pair**: Pool creation checks for at most 3 assets but fails when ADA is not in trading pair because output has 4 assets (Pool NFT + A + B + minUTxO ADA). Requires understanding protocol business logic
+- **SSW-203. Create pool doesn't validate fees_per_10_thousand in pool output datum**: Pool creation doesn't validate fee values are in valid range [0, 10000], allowing invalid percentage values. Requires understanding protocol business logic
+- **SSW-204. No way to modify the list of authorized staking keys in the protocol settings**: Settings validator prevents modifying authorized_staking_keys field in all update paths, making key rotation impossible. Requires understanding protocol governance and business logic
+- **SSW-205. Pool fees update lacks validation of fees percentages**: UpdatePoolFees allows setting fees outside valid range [0, 10000] that CreatePool enforces, allowing fee manager to bypass initial validation. Requires understanding protocol multi-operation coordination and business logic
+- **SSW-206. Pool NFT cannot be burned**: Pool minting policy has no redeemer allowing pool NFT burning, making pool destruction impossible when liquidity is depleted. Requires understanding protocol lifecycle and multi-validator coordination
+- **SSW-301. Redundant parameters in process_order**: outputs = output + rest_outputs: Function receives both a list and its head/tail components as separate parameters, creating redundancy. Code organization and style issue
+- **SSW-302. Redundant check for pool output stake credential in pool scoop validator**: Staking credential checked separately after full address already validated, creating redundant validation. Requires understanding type structure and validation semantics
+- **SSW-303. Optimizable power of two (do_2_exp)**: Function uses linear recursion instead of more efficient algorithms available in standard library. Requires understanding function semantics and algorithmic analysis
+- **SSW-304. Redundant datum parameter in process_order**: Function receives datum parameter but only uses fields already available as separate parameters, creating redundancy. Requires data flow analysis to determine parameter redundancy
+- **SSW-305. Total fee computed recursively can be calculated in single expression**: Recursive fee accumulation through iteration can be replaced with direct formula using order type counts. Requires understanding mathematical equivalence between iterative and closed-form solutions
+- **SSW-306. Optimizable check for initial LP minting in create pool**: Validator computes sqrt for verification when expected value is already known, which can be verified more efficiently by squaring. Requires understanding computation semantics and mathematical equivalence
+- **SSW-307. Optimizable check for LP minting in scoop**: Validator searches inputs for pool NFT which can be replaced by checking first output and verifying NFT not minted. Requires understanding token conservation logic and equivalent validation approaches
+- **SSW-309. Optimizable manipulation of values in do_donation**: Uses value.merge and value.negate instead of more efficient value.add with negative amounts. Aiken-specific library optimization, not applicable to Plinth/Haskell
+- **SSW-310. Formula simplifications in do_deposit**: Deposit amount calculations use intermediate "change" variables that can be eliminated through algebraic simplification. Requires mathematical reasoning and understanding formula equivalence
+- **SSW-311. Asymmetry of deposit operation**: Deposit operation is asymmetric in corner cases due to integer rounding, deviating from theoretical AMM symmetry. Requires understanding protocol’s AMM specific business logic
+- **SSW-312. Optimizable manipulation of output value in has_expected_pool_value**: Multiple function calls traverse same value structure separately instead of single combined traversal. Requires understanding function behavior and data structure traversal patterns
+- **SSW-314. PoolState not used anymore**: Type definition no longer used after refactoring remains in the codebase. Dead code issue already caught by standard tooling
