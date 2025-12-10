@@ -1,0 +1,12 @@
+# Audits listing
+This folder contains summaries of audit reports, organized by the programming language used in each audited project. Audits may be public or private.
+
+For public audits, each summary details:
+- The audit provider (Auditor)
+- The audited party (Auditee)
+- A brief description of the audited project
+- A list of findings, categorized as **relevant**, **may be relevant**, or **not relevant**, each with a short description. For **relevant** and **may be relevant** findings, a detectable pattern is provided
+
+For private audits, summaries include only the findings list, limited to **relevant** and **may be relevant** findings.
+
+Some findings classified as may be relevant include a tag at the end of the description to help identify recurring patterns among findings.

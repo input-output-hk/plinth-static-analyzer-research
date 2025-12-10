@@ -2,20 +2,23 @@
 
 ## MuesliSwap
 
-**Description**
-From: MLabs To: MuesliSwapTeam
+**Auditor**: MLabs
 
-**Summary:** MuseliSwap's DEX is based on a decentralized version of the traditional order book style exchange used in stock markets. Users submit trades to a smart contract and decentralized matchmakers scan the blockchain to settle trades, charging a small fee to do so.
+**Auditee**: MuesliSwapTeam
 
-**Findings**
+**Description**: MuseliSwap's DEX is based on a decentralized version of the traditional order book style exchange used in stock markets. Users submit trades to a smart contract and decentralized matchmakers scan the blockchain to settle trades, charging a small fee to do so.
+
+### Findings
 
 **Relevant**
 
-- **MSW-B01. Dangerous Use of unstableMakeIsData:** Using unstableMakeIsData assigns constructor indices based on declaration order, which can change unpredictably and break deployed contracts. Detectable pattern: usage of unstableMakeIsData function
+- **MSW-B01. Dangerous Use of unstableMakeIsData:** Using unstableMakeIsData assigns constructor indices based on declaration order, which can change unpredictably and break deployed contracts.
+<ins>Detectable pattern</ins>: usage of unstableMakeIsData function
 
 **May be relevant**
 
-- **MSW-A01. Double Satisfaction Attack:** Validator aggregates payment outputs by checking only recipient's address without verifying uniqueness. Allows attackers to satisfy multiple orders with single payment by batching orders from the same creator. Detectable pattern: value aggregation filtering by address without datum uniqueness check [DOUBLE-SATISFACTION]
+- **MSW-A01. Double Satisfaction Attack:** Validator aggregates payment outputs by checking only recipient's address without verifying uniqueness. Allows attackers to satisfy multiple orders with single payment by batching orders from the same creator.
+<ins>Detectable pattern</ins>: value aggregation filtering by address without datum uniqueness check [DOUBLE-SATISFACTION]
 
 **Not relevant**
 
@@ -27,24 +30,30 @@ From: MLabs To: MuesliSwapTeam
 
 ## AADA
 
-**Description**
-From: VacuumLabs To: AADA Finance
+**Auditor**: VacuumLabs
 
-**Summary:** A peer-to-peer lending protocol that allows users to borrow and lend crypto assets directly on the blockchain. Borrowers can request loans by posting collateral, and lenders can provide the requested loan amount. The protocol includes mechanisms for loan repayment, interest calculation, and collateral liquidation if borrowers default.
+**Auditee**: AADA Finance
 
-**Findings**
+**Description**: A peer-to-peer lending protocol that allows users to borrow and lend crypto assets directly on the blockchain. Borrowers can request loans by posting collateral, and lenders can provide the requested loan amount. The protocol includes mechanisms for loan repayment, interest calculation, and collateral liquidation if borrowers default.
+
+### Findings
 
 **May be relevant**
 
 - **AADA-002 & AADA-003. Double Satisfaction Attack:** Validator aggregates payment outputs by checking only recipient's address without verifying uniqueness. A lender can batch multiple loan requests from the same borrower in a single transaction, providing only the maximum loan/collateral amount instead of the sum. The valuePaidTo function aggregates all outputs to an address without uniqueness checks, similar to MuesliSwap A01 but hidden behind helper function calls instead of direct list comprehensions
-- **AADA-004. Resource DoS attack:** Validator doesn't restrict which tokens can be included in output UTxOs, allowing attackers to bloat outputs with arbitrary tokens. Detectable pattern: subset value validation instead of equality check [TRASH-TOKENS]
+- **AADA-004. Resource DoS attack:** Validator doesn't restrict which tokens can be included in output UTxOs, allowing attackers to bloat outputs with arbitrary tokens.
+<ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 - **AADA-101 & AADA-102. Timestamp Manipulation for Interest Calculation:** Interest calculation uses user-provided timestamps from redeemers (interestPayDate, lendDate) without validating them against transaction's validity range. Allows borrower to set future date for zero interest or lender to set past date forcing immediate full interest payment
-- **AADA-104, AADA-303 & AADA-403. Incomplete Token Tuple Validation:** Validators check for token presence in minting operations without verifying whether tokens are being minted (positive) versus burned (negative), or whether specific token names match expectations. Detectable pattern: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AADA-104, AADA-303 & AADA-403. Incomplete Token Tuple Validation:** Validators check for token presence in minting operations without verifying whether tokens are being minted (positive) versus burned (negative), or whether specific token names match expectations.
+<ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 - **AADA-202. Losing partial interest precision:** Unnecessary intermediary rounding in interest calculation causes lenders to lose money. Pattern: division before multiplication (elapsed / total) _ amount loses precision compared to (elapsed _ amount) / total.
 - **AADA-302. Rounding of interest favors borrower:** Interest calculation uses floor division, favoring borrower. Static analyzer could detect rounding direction (div vs divCeiling) but determining correct direction requires business context.
-- **AADA-304. Constant protocol staking key rewards capped:** Staking credential hardcoded in contract parameters rather than datum causes reward saturation once pool reaches cap. Detectable pattern: staking key in immutable parameters vs variable datum. [IMMUTABLE-CREDENTIAL]
-- **AADA-305. Oracle policy not checking destination of all tokens:** Policy checks at least one oracle token goes to dest address using existential quantifier, but doesn't enforce all oracle tokens go there. Detectable pattern: any vs all for token destination validation. [MISSING-ADDRESS-VALIDATION]
-- **AADA-402. Inverted percentage calculation:** Two inverted divisions in separate functions accidentally cancel out (a/b) used as divisor → multiply by b/a). Detectable pattern: reciprocal cancellation, but requires cross-function data flow analysis.
+- **AADA-304. Constant protocol staking key rewards capped:** Staking credential hardcoded in contract parameters rather than datum causes reward saturation once pool reaches cap.
+<ins>Detectable pattern</ins>: staking key in immutable parameters vs variable datum. [IMMUTABLE-CREDENTIAL]
+- **AADA-305. Oracle policy not checking destination of all tokens:** Policy checks at least one oracle token goes to dest address using existential quantifier, but doesn't enforce all oracle tokens go there.
+<ins>Detectable pattern</ins>: any vs all for token destination validation. [MISSING-ADDRESS-VALIDATION]
+- **AADA-402. Inverted percentage calculation:** Two inverted divisions in separate functions accidentally cancel out (a/b) used as divisor → multiply by b/a).
+<ins>Detectable pattern</ins>: reciprocal cancellation, but requires cross-function data flow analysis.
 
 **Not relevant**
 
@@ -64,12 +73,13 @@ From: VacuumLabs To: AADA Finance
 
 ## AADA Debt/Request
 
-**Description**
-From: VacuumLabs To: AADA Finance
+**Auditor**: VacuumLabs
 
-**Summary:** Another VacuumLabs audit of AADA Finance's P2P lending protocol. In this version, the Lender creates a "debt request" specifying loan terms, and the Borrower fulfills it by locking collateral. Both parties receive bond NFTs (Lender NFT and Borrower NFT) that can be traded, transferring responsibilities with ownership.
+**Auditee**: AADA Finance
 
-**Findings**
+**Description**: Another VacuumLabs audit of AADA Finance's P2P lending protocol. In this version, the Lender creates a "debt request" specifying loan terms, and the Borrower fulfills it by locking collateral. Both parties receive bond NFTs (Lender NFT and Borrower NFT) that can be traded, transferring responsibilities with ownership.
+
+### Findings
 
 **Not relevant**
 
@@ -80,20 +90,25 @@ From: VacuumLabs To: AADA Finance
 
 ## Ardana dUSD
 
-**Description**
-From: VacuumLabs To: ArdanaLabs
+**Auditor**: VacuumLabs
 
-**Summary:** A stablecoin protocol on Cardano that creates dUSD backed by ADA collateral. Core components include Vaults (hold collateral and manage loans), Buffer (stabilizes dUSD price via auctions), Price Module (aggregates price data), and Protocol Parameters Module. Users can create vaults, take loans by minting dUSD, and face liquidation if collateralization ratio drops below threshold.
+**Auditee**: ArdanaLabs
 
-**Findings**
+**Description**: A stablecoin protocol on Cardano that creates dUSD backed by ADA collateral. Core components include Vaults (hold collateral and manage loans), Buffer (stabilizes dUSD price via auctions), Price Module (aggregates price data), and Protocol Parameters Module. Users can create vaults, take loans by minting dUSD, and face liquidation if collateralization ratio drops below threshold.
+
+### Findings
 
 **May be relevant**
 
-- **ARD-005. Use of fixed admin keys:** Admin keys hardcoded in script addresses making rotation impossible if compromised. Detectable pattern: admin credentials in immutable script hash vs mutable datum (maybe from a UTxO of a reference script) [IMMUTABLE-CREDENTIAL]
-- **ARD-101. Deposited ADA is not staked:** Vault collateral ADA not staked, users lose potential rewards. Detectable pattern: missing staking credential in script addresses
+- **ARD-005. Use of fixed admin keys:** Admin keys hardcoded in script addresses making rotation impossible if compromised.
+<ins>Detectable pattern</ins>: admin credentials in immutable script hash vs mutable datum (maybe from a UTxO of a reference script) [IMMUTABLE-CREDENTIAL]
+- **ARD-101. Deposited ADA is not staked:** Vault collateral ADA not staked, users lose potential rewards.
+<ins>Detectable pattern</ins>: missing staking credential in script addresses
 - **ARD-102. Limited storage of historical stability fees:** Historical fee changes stored in datum map, limited to 20 entries due to datum size constraints. Long-term vaults lose early fee history when >20 changes occur, enabling interest underpayment. A map with size limits is syntactically detectable, but determining this creates an economic exploit requires understanding what the map stores and how it's used in calculations
-- **ARD-201. Timestamp is the lower bound of 12-hour validity windows:** Design uses lower bound of txInfoValidRange for timestamp, allowing users to manipulate timestamp within the 12-hour window for price speculation. Detectable pattern: lower vs upper bound usage, but assessing exploit might not be so easy [VALIDITY-RANGE-BOUND]
-- **ARD-401. Price module contention:** Price module UTxO spent for reads, causing congestion. Detectable pattern: UTxO spent but recreated with identical datum/value (read-only access), should use reference input instead. [READ-ONLY-SPEND]
+- **ARD-201. Timestamp is the lower bound of 12-hour validity windows:** Design uses lower bound of txInfoValidRange for timestamp, allowing users to manipulate timestamp within the 12-hour window for price speculation.
+<ins>Detectable pattern</ins>: lower vs upper bound usage, but assessing exploit might not be so easy [VALIDITY-RANGE-BOUND]
+- **ARD-401. Price module contention:** Price module UTxO spent for reads, causing congestion.
+<ins>Detectable pattern</ins>: UTxO spent but recreated with identical datum/value (read-only access), should use reference input instead. [READ-ONLY-SPEND]
 
 **Not relevant**
 
@@ -107,25 +122,31 @@ From: VacuumLabs To: ArdanaLabs
 
 ## Cerra P2P Lending
 
-**Description**
-From: Tweag To: Cerra
+**Auditor**: Tweag
 
-**Summary:** A peer-to-peer lending protocol that empowers users to leverage or hedge their cryptocurrency holdings.
+**Auditee**: Cerra
 
-**Findings**
+**Description**: A peer-to-peer lending protocol that empowers users to leverage or hedge their cryptocurrency holdings.
+
+### Findings
 
 **Relevant**
 
-- **2.2.1.1. All assets can be stolen from lending UTxOs:** Minting policy searches for continuing output by datum type without verifying destination address, allowing assets to be redirected to any address with matching datum. Detectable pattern: output filtered by datum properties without scriptAddress/validatorHash check [MISSING-ADDRESS-VALIDATION]
+- **2.2.1.1. All assets can be stolen from lending UTxOs:** Minting policy searches for continuing output by datum type without verifying destination address, allowing assets to be redirected to any address with matching datum.
+<ins>Detectable pattern</ins>: output filtered by datum properties without scriptAddress/validatorHash check [MISSING-ADDRESS-VALIDATION]
 
 **May be relevant**
 
-- **2.2.1.2. Loans can be liquidated before their deadline:** Deadline validation uses upper bound of validity range instead of lower bound, allowing lenders to liquidate early by setting upper bound after deadline while lower bound remains before deadline. Detectable pattern: lower vs upper bound usage for deadline checks, but determining correct bound requires understanding check semantics [VALIDITY-RANGE-BOUND]
-- **2.2.1.3. Lenders can increase the amount of due interests:** When accepting a borrow offer, validation checks loanStartTime equals lower bound of validity range, allowing the lender to set arbitrarily early start date (and matching lower bound) while transaction executes later, inflating interest period. Detectable pattern: lower vs upper bound usage for timestamp validation, but determining correct bound requires understanding check semantics [VALIDITY-RANGE-BOUND]
-- **2.2.2.1. The amount of Ada in the script is too strict:** Validators enforce exact ADA amounts (2 or 4 ADA) in script outputs using equality checks, but Plutus V2 minimum ADA depends on UTxO size. Detectable pattern: exact equality check on ADA amounts in output validation (potentially outdated Plutus V1 pattern or misunderstanding of minUTxO)
+- **2.2.1.2. Loans can be liquidated before their deadline:** Deadline validation uses upper bound of validity range instead of lower bound, allowing lenders to liquidate early by setting upper bound after deadline while lower bound remains before deadline.
+<ins>Detectable pattern</ins>: lower vs upper bound usage for deadline checks, but determining correct bound requires understanding check semantics [VALIDITY-RANGE-BOUND]
+- **2.2.1.3. Lenders can increase the amount of due interests:** When accepting a borrow offer, validation checks loanStartTime equals lower bound of validity range, allowing the lender to set arbitrarily early start date (and matching lower bound) while transaction executes later, inflating interest period.
+<ins>Detectable pattern</ins>: lower vs upper bound usage for timestamp validation, but determining correct bound requires understanding check semantics [VALIDITY-RANGE-BOUND]
+- **2.2.2.1. The amount of Ada in the script is too strict:** Validators enforce exact ADA amounts (2 or 4 ADA) in script outputs using equality checks, but Plutus V2 minimum ADA depends on UTxO size.
+<ins>Detectable pattern</ins>: exact equality check on ADA amounts in output validation (potentially outdated Plutus V1 pattern or misunderstanding of minUTxO)
 - **2.2.2.3. Borrower NFT could be referenced when retrieving loan assets:** Transaction spends and recreates UTxO containing borrower NFT to prove ownership instead of using reference input [READ-ONLY-SPEND]
 - **2.2.2.6. Inputs other than the script ones should be allowed to have datums:** Validator searches for "the only input with any datum" instead of filtering by specific datum type and address, preventing transactions from including other inputs with datums.
-- **2.2.4.1. Validation guards are not centralized:** Validation logic scattered across partial utility functions that throw errors internally, rather than centralized guards in the validator with total utility functions returning Maybe/Either. Detectable pattern: utility functions containing error/traceError/debugError calls, hiding validation logic away from main validator [PARTIAL-UTILITIES]
+- **2.2.4.1. Validation guards are not centralized:** Validation logic scattered across partial utility functions that throw errors internally, rather than centralized guards in the validator with total utility functions returning Maybe/Either.
+<ins>Detectable pattern</ins>: utility functions containing error/traceError/debugError calls, hiding validation logic away from main validator [PARTIAL-UTILITIES]
 
 **Not relevant**
 
@@ -141,17 +162,22 @@ From: Tweag To: Cerra
 
 ## Cerra AMM
 
-**Description**
-From: Tweag To: Cerra
+**Auditor**: Tweag
 
-**Findings**
+**Auditee**: Cerra
+
+**Description**: Cerra AMM is an automated market maker (AMM) developed by Cerra.io (a decentralized finance -DeFi- platform built on the Cardano network). Its goal is to provide a faster and more efficient cryptocurrency exchange solution within the Cardano ecosystem, leveraging advanced technologies such as Plutus V2 and websockets for real-time synchronization.
 
 **May be relevant**
 
-- **2.2.0.2. Checking the batcher token could be done with a reference input:** UTxO containing batcher token spent and recreated to prove ownership instead of using reference input. Detectable pattern: UTxO spent but recreated with identical datum/value (read-only access), should use reference input instead [READ-ONLY-SPEND]
-- **2.2.0.5. Usage of map for additional info in PoolDatum is inadapted:** Map with fixed required keys used instead of dedicated datum fields, reducing type safety and allowing misspellings/omissions. Detectable pattern: Map type with validation checking for specific hardcoded keys, indicating fixed structure better represented as record fields
-- **2.2.0.7. Precision is a static value that takes up space in pool datums:** Datum fields validated to equal hardcoded constant (12), making datums unnecessarily large. Detectable pattern: datum fields with validation requiring exact match to hardcoded constant (static values bloating datum)
-- **2.2.0.8. Implementation of equality test for PoolDatum is incomplete:** Eq instance for PoolDatum omits pdPrice field from equality check, comparing only subset of fields. Detectable pattern: custom Eq instance that doesn't compare all data type fields (syntactically identifiable but determining if omission is intentional design vs oversight requires semantic understanding of domain model)
+- **2.2.0.2. Checking the batcher token could be done with a reference input:** UTxO containing batcher token spent and recreated to prove ownership instead of using reference input.
+<ins>Detectable pattern</ins>: UTxO spent but recreated with identical datum/value (read-only access), should use reference input instead [READ-ONLY-SPEND]
+- **2.2.0.5. Usage of map for additional info in PoolDatum is inadapted:** Map with fixed required keys used instead of dedicated datum fields, reducing type safety and allowing misspellings/omissions.
+<ins>Detectable pattern</ins>: Map type with validation checking for specific hardcoded keys, indicating fixed structure better represented as record fields
+- **2.2.0.7. Precision is a static value that takes up space in pool datums:** Datum fields validated to equal hardcoded constant (12), making datums unnecessarily large.
+<ins>Detectable pattern</ins>: datum fields with validation requiring exact match to hardcoded constant (static values bloating datum)
+- **2.2.0.8. Implementation of equality test for PoolDatum is incomplete:** Eq instance for PoolDatum omits pdPrice field from equality check, comparing only subset of fields.
+<ins>Detectable pattern</ins>: custom Eq instance that doesn't compare all data type fields (syntactically identifiable but determining if omission is intentional design vs oversight requires semantic understanding of domain model)
 
 **Not relevant**
 
@@ -162,16 +188,18 @@ From: Tweag To: Cerra
 
 ## Djed
 
-**Description**
-From: Tweag To: IOG
+**Auditor**: Tweag
 
-**Summary:** Cardano's native overcollateralized stablecoin, developed by IOG and powered by COTI. DJED is backed by ADA and uses SHEN as a reserve coin.
+**Auditee**: IOG
 
-**Findings**
+**Description**: Cardano's native overcollateralized stablecoin, developed by IOG and powered by COTI. DJED is backed by ADA and uses SHEN as a reserve coin.
+
+### Findings
 
 **May be relevant**
 
-- **2.2.1.1. Additional tokens of the order token currency symbol can be minted:** Validation checks only the specific token name ("DjedOrderTicket") without restricting other token names under the same currency symbol, allowing arbitrary minting of tokens with different names. Detectable pattern: token validation filtering by specific token name, but detecting the missing check for other token names requires identifying absence of negative validation (proving no other tokens exist)
+- **2.2.1.1. Additional tokens of the order token currency symbol can be minted:** Validation checks only the specific token name ("DjedOrderTicket") without restricting other token names under the same currency symbol, allowing arbitrary minting of tokens with different names.
+<ins>Detectable pattern</ins>: token validation filtering by specific token name, but detecting the missing check for other token names requires identifying absence of negative validation (proving no other tokens exist)
 
 **Not relevant**
 
@@ -197,18 +225,22 @@ From: Tweag To: IOG
 
 ## Optim Bonds and Pools
 
-**Description**
-From: Tweag To: Optim
+**Auditor**: Tweag
 
-**Summary:** Users of the Optim protocol deposit their assets into pools called vaults. These pools of funds are invested by smart contracts that are coded with one or more investment strategies and designed to allocate and reallocate funds to maximize the assets yield potential. Each vault deals with a different element of yield generating Cardano DeFi.
+**Auditee**: Optim
 
-**Findings**
+**Description**: Users of the Optim protocol deposit their assets into pools called vaults. These pools of funds are invested by smart contracts that are coded with one or more investment strategies and designed to allocate and reallocate funds to maximize the assets yield potential. Each vault deals with a different element of yield generating Cardano DeFi.
+
+### Findings
 
 **May be relevant**
 
-- **2.3.1.1. uniqNFT can be redirected when posting a bond:** Minting policy doesn't verify minted uniqNFT goes to correct validator address, allowing redirection to arbitrary address. Detectable pattern: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
-- **2.3.1.4. Pool tokens target is unchecked:** Minting policy doesn't verify where minted pool tokens are sent, allowing redirection to arbitrary addresses or minting without pool creation. Detectable pattern: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
-- **2.3.1.8. Funds can be locked after datum tampering:** Validator doesn't verify continuing output datum during partial redemption, allowing attackers to modify datum fields and break subsequent operations. Detectable pattern: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
+- **2.3.1.1. uniqNFT can be redirected when posting a bond:** Minting policy doesn't verify minted uniqNFT goes to correct validator address, allowing redirection to arbitrary address.
+<ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
+- **2.3.1.4. Pool tokens target is unchecked:** Minting policy doesn't verify where minted pool tokens are sent, allowing redirection to arbitrary addresses or minting without pool creation.
+<ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
+- **2.3.1.8. Funds can be locked after datum tampering:** Validator doesn't verify continuing output datum during partial redemption, allowing attackers to modify datum fields and break subsequent operations.
+<ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
 
 **Not relevant**
 
@@ -227,14 +259,11 @@ From: Tweag To: Optim
 
 ## Private Audit #1
 
-**Description**
-[No description provided]
-
-**Summary:** [No summary provided]
-
-**Findings**
+### Findings
 
 **Relevant**
 
-- **ID-01. Incomplete Currency Symbol Validation:** Function validates token name matches but doesn't properly check currency symbol, allowing tokens with same name but different policies to pollute UTxOs. Detectable pattern: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **ID-02. Unvalidated Reference Script Field:** Protocol outputs don't validate or check reference script field, allowing arbitrary reference scripts to be attached and increase future transaction fees. Detectable pattern: output validation logic that ignores reference script field entirely [UNVALIDATED-REFERENCE-SCRIPT]
+- **ID-01. Incomplete Currency Symbol Validation:** Function validates token name matches but doesn't properly check currency symbol, allowing tokens with same name but different policies to pollute UTxOs.
+<ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **ID-02. Unvalidated Reference Script Field:** Protocol outputs don't validate or check reference script field, allowing arbitrary reference scripts to be attached and increase future transaction fees.
+<ins>Detectable pattern</ins>: output validation logic that ignores reference script field entirely [UNVALIDATED-REFERENCE-SCRIPT]

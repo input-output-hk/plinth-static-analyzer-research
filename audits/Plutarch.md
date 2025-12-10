@@ -2,21 +2,26 @@
 
 ## Agora, Agora pro
 
-**Description**
-From: VacuumLabs To: Liqwid Labs
+**Auditor**: VacuumLabs
 
-**Summary:** Agora is a Cardano native on-chain governance module written in Plutarch. It provides the necessary building blocks for any on-chain decentralized application to adopt and extend itself into a DAO-governed application. It consists of an open-source module (Agora) and a proprietary extension (Agora-Pro)
+**Auditee**: Liqwid Labs
 
-**Findings**
+**Description:** Agora is a Cardano native on-chain governance module written in Plutarch. It provides the necessary building blocks for any on-chain decentralized application to adopt and extend itself into a DAO-governed application. It consists of an open-source module (Agora) and a proprietary extension (Agora-Pro)
+
+### Findings
 
 **May be relevant**
 
-- **AGO-105. Stake ST token name not checked:** Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history. Detectable pattern: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AGO-105. Stake ST token name not checked:** Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.
+<ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 - **AGO-104. Attacker can fail any voted-on/locked proposal:** Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
 - **AGO-203. Stakes can be frozen effectively forever by the multisig entity:** Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
-- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit:** Function validates currency symbol but not token name of stake ST. Detectable pattern: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes:** Validator allows operation that passes validation but doesn't change state, enabling DoS attacks. Detectable pattern: operations that succeed without modifying state [UNCHANGED-STATE]
-- **AGO-401. Staking credential is undefined:** Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery. Detectable pattern: script addresses without defined staking credentials
+- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit:** Function validates currency symbol but not token name of stake ST.
+<ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes:** Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.
+<ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+- **AGO-401. Staking credential is undefined:** Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.
+<ins>Detectable pattern</ins>: script addresses without defined staking credentials
 
 **Not relevant**
 
@@ -44,16 +49,19 @@ From: VacuumLabs To: Liqwid Labs
 
 ## Liqwid v1
 
-**Description**
-From: VacuumLabs To: Liqwid Labs
+**Auditor**: VacuumLabs
 
-**Summary:** An open source and non-custodial liquidity protocol for interest rate curves based on lender supply and borrower demand of the underlying Cardano native asset. Each Cardano native asset that is accepted by the protocol has its own liquidity pool, a.k.a market. Each of these markets has its own interest rate, and this is determined by the supply of the underlying asset along with the borrowing demand for the asset. If borrowing demand is low, and supplied liquidity is high, then interest rates are low; and vice versa.
+**Auditee**: Liqwid Labs
 
-**Findings**
+**Description:** An open source and non-custodial liquidity protocol for interest rate curves based on lender supply and borrower demand of the underlying Cardano native asset. Each Cardano native asset that is accepted by the protocol has its own liquidity pool, a.k.a market. Each of these markets has its own interest rate, and this is determined by the supply of the underlying asset along with the borrowing demand for the asset. If borrowing demand is low, and supplied liquidity is high, then interest rates are low; and vice versa.
+
+### Findings
 
 **May be relevant**
-- **LIQV1-001. Retrieving the collateral without repaying allows for draining a market:** Borrow token minting policy doesn't verify the output address where the new borrow token is sent, allowing attacker to redirect collateral to a malicious script instead of the proper loan validator. Detectable pattern: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
-- **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum:** Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification. Detectable pattern: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
+- **LIQV1-001. Retrieving the collateral without repaying allows for draining a market:** Borrow token minting policy doesn't verify the output address where the new borrow token is sent, allowing attacker to redirect collateral to a malicious script instead of the proper loan validator.
+<ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
+- **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum:** Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification.
+<ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
 
 **Not relevant**
 
@@ -91,18 +99,23 @@ From: VacuumLabs To: Liqwid Labs
 - **LIQV1-409. Other code best practices:** Multiple code quality issues including misleading names, duplicate code, dead code, and outdated comments. Code quality and maintainability issues already caught by standard tooling
 
 ## WingRiders v2
-**Description**
-From: VacuumLabs To: WingRiders
 
-**Summary:** WingRiders v2 is an extension and rewrite of the WingRiders DEX supporting both constant-product and stableswap AMM pools. The protocol heavily relies on authority tokens, datums, and scripted accounting, which introduces multiple risks related to unchecked parameter updates, invariant enforcement, and output composition.
+**Auditor**: VacuumLabs
 
-**Findings**
+**Auditee**: WingRiders
+
+**Description:** WingRiders v2 is an extension and rewrite of the WingRiders DEX  supporting both constant-product and stableswap AMM pools. The protocol heavily relies on authority tokens, datums, and scripted accounting, which introduces multiple risks related to unchecked parameter updates, invariant enforcement, and output composition.
+
+### Findings
 
 **Relevant**
 
-- **WR2-201. Anyone can block script fee beneficiary funds**: Validator doesn't validate datum attached to outputs sent to script addresses, allowing arbitrary datums that may prevent beneficiary script from spending. Detectable pattern: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
-- **WR2-303 Additional tokens may make compensation output unspendable**: Compensation outputs allowed arbitrary extra tokens, potentially breaking downstream scripts. Detectable pattern: subset value validation instead of equality check [TRASH-TOKENS]
-- **WR2-405. Zap-in swapA is not sanitized**: Numeric redeemer parameter used directly in arithmetic operations without any validation. Detectable pattern: redeemer fields (untrusted user input) used without validation
+- **WR2-201. Anyone can block script fee beneficiary funds**: Validator doesn't validate datum attached to outputs sent to script addresses, allowing arbitrary datums that may prevent beneficiary script from spending.
+<ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
+- **WR2-303 Additional tokens may make compensation output unspendable**: Compensation outputs allowed arbitrary extra tokens, potentially breaking downstream scripts.
+<ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+- **WR2-405. Zap-in swapA is not sanitized**: Numeric redeemer parameter used directly in arithmetic operations without any validation.
+<ins>Detectable pattern</ins>: redeemer fields (untrusted user input) used without validation
 
 
 **Not relevant**
@@ -122,17 +135,20 @@ From: VacuumLabs To: WingRiders
 
 ## MELD Token Migration
 
-**Description**
-From: VacuumLabs To: Liqwid Labs
+**Auditor**: VacuumLabs
 
-**Summary:** The protocol migrates old Meld tokens to new ones at a 1:1 ratio by requiring users to lock their old tokens in Locker UTxOs, after which they can mint the same amount of new tokens. Since the old token policy does not allow burning, the locked tokens are permanently frozen in Archive UTxOs. Locker UTxOs can later be batched into Cleanup transactions that move all old tokens into Archive UTxOs, returning the extra Ada to users while keeping the Locker fee as a reward for the batcher. Archive UTxOs can be public or controlled by a specific public key, and old tokens can only move between Archives, enabling secure consolidation and recovery of min-Ada when merging Archives with proper authorization.
+**Auditee**: Liqwid Labs
 
-**Findings**
+**Description:** The protocol migrates old Meld tokens to new ones at a 1:1 ratio by requiring users to lock their old tokens in Locker UTxOs, after which they can mint the same amount of new tokens. Since the old token policy does not allow burning, the locked tokens are permanently frozen in Archive UTxOs. Locker UTxOs can later be batched into Cleanup transactions that move all old tokens into Archive UTxOs, returning the extra Ada to users while keeping the Locker fee as a reward for the batcher. Archive UTxOs can be public or controlled by a specific public key, and old tokens can only move between Archives, enabling secure consolidation and recovery of min-Ada when merging Archives with proper authorization.
+
+### Findings
 
 **Relevant**
 
-- **MTOK-202. Filling up the UTxOs with arbitrary tokens**: Validator doesn't restrict which tokens can be included in Archive and Locker UTxOs, allowing attackers to bloat them with arbitrary tokens and cause transactions to hit size limits. Detectable pattern: subset value validation instead of exact equality check [TRASH-TOKENS]
-- **MTOK-302. Denial of service of the Archive**: Archive UTxO can be included in arbitrary transactions without performing its intended function (adding tokens or processing Lockers), enabling DoS attacks. Detectable pattern: operations that succeed without modifying state [UNCHANGED-STATE]
+- **MTOK-202. Filling up the UTxOs with arbitrary tokens**: Validator doesn't restrict which tokens can be included in Archive and Locker UTxOs, allowing attackers to bloat them with arbitrary tokens and cause transactions to hit size limits.
+<ins>Detectable pattern</ins>: subset value validation instead of exact equality check [TRASH-TOKENS]
+- **MTOK-302. Denial of service of the Archive**: Archive UTxO can be included in arbitrary transactions without performing its intended function (adding tokens or processing Lockers), enabling DoS attacks.
+<ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
 
 **Worth Noting**
 
