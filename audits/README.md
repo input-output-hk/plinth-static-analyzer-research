@@ -1,6 +1,7 @@
 # Audits listing
 
-This folder contains summaries of audit reports, organized by the programming language used in each audited project. Audits may be public or private.
+This folder contains summaries of audit reports, organized into files according to the programming language of each audited project. Each file begins with an overview that outlines the number of findings analyzed and highlights the most common issues observed.
+Audits may be public or private.
 
 For public audits, each summary details:
 
