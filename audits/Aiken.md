@@ -1,5 +1,30 @@
 # Aiken Audit Summaries
 
+## Overview
+
+This document summarizes findings from **13 Aiken audits** in the Cardano ecosystem.
+
+**Findings Classification:**
+
+- **Relevant findings:** 17
+- **May be relevant findings:** 35
+- **Not relevant findings:** 84
+- **Total findings:** 136
+
+### Common Patterns
+
+Common issues in Aiken smart contracts include:
+
+1. **Missing Address Validation (6 occurrences) - [MISSING-ADDRESS-VALIDATION]:** Minting policies and validators that fail to verify the destination address of minted tokens or continuing outputs, allowing attackers to redirect assets to arbitrary addresses.
+
+2. **Incomplete Token Validation (5 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]:** Validators that check only some components of token tuples (currency symbol, token name, or quantity) while leaving others unchecked, allowing attackers to mint unauthorized tokens with the same name but different policy or bypass burning requirements.
+
+3. **Trash Tokens / Subset Value Validation (6 occurrences) - [TRASH-TOKENS]:** Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens, increasing costs and enabling potential exploits.
+
+4. **Unvalidated Datum Fields (6 occurrences) - [UNVALIDATED-DATUM], [PARTIAL-UNVALIDATED-DATUM]:** Validators that create or update outputs without properly validating datum contents, allowing arbitrary or malicious data that can break subsequent operations or enable attacks.
+
+5. **Unvalidated Reference Script Field (4 occurrences) - [UNVALIDATED-REFERENCE-SCRIPT]:** Outputs that don't validate the reference script field, allowing arbitrary reference scripts to be attached, which can significantly increase future transaction fees.
+
 ## Splash Protocol Dex
 
 **Auditor**: AnastasiaLabs
@@ -13,28 +38,28 @@
 **May be relevant**
 
 - **ID-401. DAO can change the pool unrestricted:** Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum.
-<ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input
+  <ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input
 - **ID-301 Zero spam:** Ensure that a minimal amount is actually transacted to avoid the possibility of endless deposit and redeem the same value. It is recommended to add some minimal fee to the redeem action to make it more expensive (also check for a minimal amount of tokens to be deposited instead of allowing 0). Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
 - **ID-302 Destroy allows hijacking the pool:** Not checking the output datum and value when the pool is spent with the Destroy redeemer.
-<ins>Detectable pattern</ins>: lack of check of the output datum and value. [MISSING-DATUM-VALIDATION]
+  <ins>Detectable pattern</ins>: lack of check of the output datum and value. [MISSING-DATUM-VALIDATION]
 - **ID-303. Lack of checking of the purpose field of the staking validator:** Staking validator doesn't validate ScriptPurpose field, allowing unintended execution of delegate or deregister actions instead of reward withdrawal, with deregistration invalidating DAO policy checks.
-<ins>Detectable pattern</ins>: staking validator without purpose field validation in script context
+  <ins>Detectable pattern</ins>: staking validator without purpose field validation in script context
 - **ID-201 Pool creation:** Pool NFT and liquidity token minting policies don't validate destination address or initial pool datum state during minting, relying entirely on off-chain code for correct initialization.
-<ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens and checks on the correctness of the datum missing. [MISSING-ADDRESS-VALIDATION]
+  <ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens and checks on the correctness of the datum missing. [MISSING-ADDRESS-VALIDATION]
 - **ID-202. Fee consistency checks:** Protocol validates individual bounds for feeNum and treasuryFee but doesn't enforce their relationship, allowing feeNum - treasuryFee to become negative and break all swap transactions.
-<ins>Detectable pattern</ins>: subtraction without relational constraint (eg. treasuryFee >= feeNum)
+  <ins>Detectable pattern</ins>: subtraction without relational constraint (eg. treasuryFee >= feeNum)
 - **ID-101 Other token name:** Pool NFT and pool liquidity minting policies allow minting any number of tokens that are named differently than the configured ones.
-<ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 - **ID-106. Duplicates in DAO signers:** DAOPolicy signer list doesn't check for duplicates, allowing some key holders to have amplified voting power and increased risk if compromised.
-<ins>Detectable pattern</ins>: lists of identity/authorization types (PubKeyHash, Address, ValidatorHash, etc.) without uniqueness validation
+  <ins>Detectable pattern</ins>: lists of identity/authorization types (PubKeyHash, Address, ValidatorHash, etc.) without uniqueness validation
 - **ID-108 Optimize output datum validation:** Validation on the continuing datum of the pool is done comparing individual fields of the input datum with the fields of the output datum. Instead, constructing the expected datum and compare it against the actual datum in the continuing pool output would be more efficient.
-<ins>Detectable pattern</ins>: multiple individual field comparisons between datums
+  <ins>Detectable pattern</ins>: multiple individual field comparisons between datums
 - **ID-109 Treasury fee denominator must be equal to fee denominator:** Two constants with the same value that are used for the same purpose, could lead to misunderstandings in the future.
-<ins>Detectable pattern</ins>: Two constats
+  <ins>Detectable pattern</ins>: Two constats
 - **ID-111. Unnecessary if in correctLpTokenDelta:**
-<ins>Detectable pattern</ins>: conditional logic made redundant by subsequent constraints. Requires constraint solving and data flow analysis to detect unreachable branches
+  <ins>Detectable pattern</ins>: conditional logic made redundant by subsequent constraints. Requires constraint solving and data flow analysis to detect unreachable branches
 - **ID-114 Unnecessary datum re-construction:** Function extracts fields from input datum, reconstructs new datum from those fields, then compares to output datum instead of direct equality check.
-<ins>Detectable pattern</ins>: datum fields extracted and immediately used to reconstruct identical datum structure
+  <ins>Detectable pattern</ins>: datum fields extracted and immediately used to reconstruct identical datum structure
 
 **Not relevant**
 
@@ -48,24 +73,21 @@
 - **ID-112 Fee consistency checks:** Upper limit of the swap fees should be modified to a reasonable price
 - **ID-113 Fixed Balance pool weights:** Implementation only supports two-token pools with fixed 20:80 ratio instead of customizable weights. Business logic issue
 
-
-
 ## BookToken
 
 **Auditor**: Tweag
 
 **Auditee**: Book.io
 
-**Description**:The BOOK token platform and exchange is the first of its kind by using reading to “mine” for tokens. In order to obtain ```$BOOK``` tokens, users must purchase NFT books – and then read them. Readers are ONLY rewarded with native ```$BOOK``` tokens based on how much they read. The more you read, the more ```$BOOK``` you can earn.
-These Cardano-native tokens are redeemable on the platform to purchase new eBooks and Audiobooks – and also transferrable from the ```$BOOK``` Token platform to other compatible wallets and crypto exchanges.
-
+**Description**:The BOOK token platform and exchange is the first of its kind by using reading to “mine” for tokens. In order to obtain `$BOOK` tokens, users must purchase NFT books – and then read them. Readers are ONLY rewarded with native `$BOOK` tokens based on how much they read. The more you read, the more `$BOOK` you can earn.
+These Cardano-native tokens are redeemable on the platform to purchase new eBooks and Audiobooks – and also transferrable from the `$BOOK` Token platform to other compatible wallets and crypto exchanges.
 
 ### Findings
 
 **May be relevant**
 
 - **2.2.4.3. Some helper functions impact compiled script size:** Helper functions are trivial wrappers that could be inlined.
-<ins>Detectable pattern</ins>: functions that only pattern match or call another function with fixed arguments
+  <ins>Detectable pattern</ins>: functions that only pattern match or call another function with fixed arguments
 
 **Not relevant**
 
@@ -79,7 +101,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **2.2.4.2. Unnecessary named intermediates:** Excessive use of intermediate variables may reduce code clarity. Code style issue
 - **2.2.4.4. Comments are lacking in the code:** Source code would benefit from more description comments. Documentation issue
 
-
 ## MinSwap Dex
 
 **Auditor**: Tweag
@@ -88,17 +109,16 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Description**: Minswap is a Cardano DEX where LPs can see the potential APY of a pool before providing liquidity, and then make an informed choice about which pools they chose to provide liquidity to. MinSwap DEX also employs an automated yield farm strategy, which helps LPs to rebalance the liquidity they provided into the most efficient pools.
 
-
 ### Findings
 
 **May be relevant**
 
 - **2.2.1.1. Unauthorized Redeeming of Open Orders:** Validator checks for presence of other script inputs without verifying their redeemers, allowing authorization bypass.
-<ins>Detectable pattern</ins>: validation depends on other script inputs without checking txInfoRedeemers, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
+  <ins>Detectable pattern</ins>: validation depends on other script inputs without checking txInfoRedeemers, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
 - **2.2.1.2. LP Tokens Can Be Duplicated:** Minting policy checks for pool output with NFT but doesn't verify which redeemer was used on pool input, allowing unauthorized minting.
-<ins>Detectable pattern</ins>: minting policy depends on other script inputs/outputs without checking txInfoRedeemers, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
+  <ins>Detectable pattern</ins>: minting policy depends on other script inputs/outputs without checking txInfoRedeemers, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
 - **2.2.1.3. Unauthorized Hijacking of Pools Funds:** Validator selects continuing output by NFT presence without verifying destination address, allowing pool funds to be redirected to attacker's script.
-<ins>Detectable pattern</ins>: continuing output selected by token presence without address validation (should use getContinuingOutputs or verify scriptAddress)  [MISSING-ADDRESS-VALIDATION]
+  <ins>Detectable pattern</ins>: continuing output selected by token presence without address validation (should use getContinuingOutputs or verify scriptAddress) [MISSING-ADDRESS-VALIDATION]
 - **2.2.4.3. Large Refactoring Opportunities:** Heavy code duplication across order validation functions could be refactored for better maintainability
 
 **Not relevant**
@@ -119,18 +139,16 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Auditee**: MinSwap Labs
 
-**Description**: Minswap AMM V2 uses a constant-product formula (x * y = k) to price trades, ensuring that larger trades incur progressively worse rates to protect liquidity. To handle concurrency on Cardano, it uses a batching system where user actions become orders that are collected and executed together in a liquidity pool. Only whitelisted wallets, called batchers, are allowed to trigger and process these batch transactions.
-
+**Description**: Minswap AMM V2 uses a constant-product formula (x \* y = k) to price trades, ensuring that larger trades incur progressively worse rates to protect liquidity. To handle concurrency on Cardano, it uses a batching system where user actions become orders that are collected and executed together in a liquidity pool. Only whitelisted wallets, called batchers, are allowed to trigger and process these batch transactions.
 
 ### Findings
 
 **May be relevant**
 
 - **MIN-01 Logical issue in fee settings:** Fee setting functions currently do not safeguard against the possibility of setting both the numerator and denominator of fees to zero.
-<ins>Detectable pattern</ins>: No check on denominator and numerator value being zero.
+  <ins>Detectable pattern</ins>: No check on denominator and numerator value being zero.
 - **ORD-02 Missing check on io_ratio_denominator:** Redundancy in the validation check and lack of validation due to typo mistake.
-<ins>Detectable pattern</ins>: duplicate checks.
-
+  <ins>Detectable pattern</ins>: duplicate checks.
 
 **Not relevant**
 
@@ -150,14 +168,14 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Auditee**: MinSwap Labs
 
-**Description**: Minswap AMM V2 uses a constant-product formula (x * y = k) to price trades, ensuring that larger trades incur progressively worse rates to protect liquidity. To handle concurrency on Cardano, it uses a batching system where user actions become orders that are collected and executed together in a liquidity pool. Only whitelisted wallets, called batchers, are allowed to trigger and process these batch transactions.
-
+**Description**: Minswap AMM V2 uses a constant-product formula (x \* y = k) to price trades, ensuring that larger trades incur progressively worse rates to protect liquidity. To handle concurrency on Cardano, it uses a batching system where user actions become orders that are collected and executed together in a liquidity pool. Only whitelisted wallets, called batchers, are allowed to trigger and process these batch transactions.
 
 ### Findings
 
 **May be relevant**
+
 - **ORD-02 Unoptimized check:** Using empty strings to verify if assets are ADA. It is recommended to use functions that do the verification.
-<ins>Detectable pattern</ins>: use of empty string to compare an asset name.
+  <ins>Detectable pattern</ins>: use of empty string to compare an asset name.
 
 **Not relevant**
 
@@ -171,27 +189,27 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Auditee**: Nuvola
 
-**Description**: Nuvola is a DePIN aggregator, a first for Cardano.  DePIN is short for Decentralized Physical Infrastructure Network, which brings cutting-edge Web 3.0 solutions to a broad number of real-world applications. Being decentralized at heart, DePIN companies pay their network supporters, such as node operators, rewards as incentive for maintaining the network.
+**Description**: Nuvola is a DePIN aggregator, a first for Cardano. DePIN is short for Decentralized Physical Infrastructure Network, which brings cutting-edge Web 3.0 solutions to a broad number of real-world applications. Being decentralized at heart, DePIN companies pay their network supporters, such as node operators, rewards as incentive for maintaining the network.
 
 ### Findings
 
 **May be relevant**
 
 - **NUV-001. Reward Token can be stolen on Process Reward operation:** Validator uses subset value check on user output (not script address) allowing authorization token to escape burning and be reused.
-<ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
+  <ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
 - **NUV-002. Rewards Claim UTxOs can be deleted without owner consent and fees stolen:** Minting policy validates token presence in outputs without checking mint amount is positive vs negative, allowing burning to consume UTxOs without authorization.
-<ins>Detectable pattern</ins>: minting validation without checking token quantity sign [INCOMPLETE-TOKEN-VALIDATION]
+  <ins>Detectable pattern</ins>: minting validation without checking token quantity sign [INCOMPLETE-TOKEN-VALIDATION]
 - **NUV-003. Stake Tokens can be arbitrarily minted during the payback loan operation:** Minting policy validates operation type without restricting quantity, combined with subset value check on outputs allowing tokens to go anywhere.
-<ins>Detectable pattern</ins>: minting without quantity validation and subset value validation [INCOMPLETE-TOKEN-VALIDATION] [TRASH-TOKENS]
+  <ins>Detectable pattern</ins>: minting without quantity validation and subset value validation [INCOMPLETE-TOKEN-VALIDATION] [TRASH-TOKENS]
 - **NUV-102. Genesis stake ref can be forged on LoanDatum:** Datum field copied from input to output without validation that values match, allowing arbitrary data. Requires understanding which datum fields must be preserved across operations [UNVALIDATED-CONTINUING-DATUM]
 - **NUV-204. Prevent inclusion of reference scripts:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
-<ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+  <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 - **NUV-301. CreateLend spend redeemer can be used to remove a lend UTxO:** Wildcard pattern matching on redeemer allows unintended redeemer types to trigger logic.
-<ins>Detectable pattern</ins>: wildcard pattern matching on redeemer types
+  <ins>Detectable pattern</ins>: wildcard pattern matching on redeemer types
 - **NUV-303. Claim reward tokens can be minted with arbitrary token name:** Minting policy validates expected token name but doesn't restrict minting other token names under the same currency symbol.
-<ins>Detectable pattern</ins>: token name validation without restricting other names [INCOMPLETE-TOKEN-VALIDATION]
+  <ins>Detectable pattern</ins>: token name validation without restricting other names [INCOMPLETE-TOKEN-VALIDATION]
 - **NUV-305. Trash tokens can be added to multiple UTxOs:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.
-<ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
+  <ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
 
 **Not relevant**
 
@@ -208,12 +226,11 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **May be relevant**
 
 - **ID-01. Unvalidated Datum on Creation and Update:** UTxO datum is not checked on creation and update transactions. May require understanding if all datum fields actually need validation.
-<ins>Detectable pattern</ins>: outputs to script addresses without datum validation or with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
+  <ins>Detectable pattern</ins>: outputs to script addresses without datum validation or with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
 
 ## Private Audit #11
 
 **Auditor** description provided]
-
 
 **Description**: [No summary provided]
 
@@ -222,16 +239,15 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **Relevant**
 
 - **ID-01. Unvalidated Output Datum:** Validator doesn't validate datum field of outputs to script addresses, allowing datum hashes which require preimages to spend.
-<ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
+  <ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
 - **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
-<ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+  <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 - **ID-03. Trash Tokens Allowed:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.
-<ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+  <ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 
 ## Private Audit #14
 
 **Auditor** description provided]
-
 
 **Description**: [No summary provided]
 
@@ -240,7 +256,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **Relevant**
 
 - **ID-01. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
-<ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+  <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 
 ## Splash Protocol Stableswap (Splash Dex - draft)
 
@@ -255,15 +271,15 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **Relevant**
 
 - **ID-201. Restricted token dust attack**: Validator checks input and output values that have same policy IDs but doesn't verify same token names within those policies, allowing attackers to add arbitrary tokens under the same policy.
-<ins>Detectable pattern</ins>: value comparison using only `policies()` equality without validating complete asset list (policy + token name pairs) [INCOMPLETE-TOKEN-VALIDATION] [TRASH-TOKENS]
+  <ins>Detectable pattern</ins>: value comparison using only `policies()` equality without validating complete asset list (policy + token name pairs) [INCOMPLETE-TOKEN-VALIDATION] [TRASH-TOKENS]
 - **ID-301. Zero spam**: Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. It should ensure a minimal amount is actually transacted. Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
 - **ID-401. DAO can change the pool unrestricted**: Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum.
-<ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input [UNVALIDATED-INPUT-INDEX]
+  <ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input [UNVALIDATED-INPUT-INDEX]
 
 **May be relevant**
 
 - **ID-501. Wrong usage of DAO action validator script**: Pool validator expects DAO script hash to be used as staking credential, but DAO is implemented as spending validator (spend keyword) instead of staking validator (withdraw keyword), causing type mismatch that bypasses validation when executed in staking context.
-<ins>Detectable pattern</ins>: script hash used in staking context but corresponding validator declared with wrong validator type keyword
+  <ins>Detectable pattern</ins>: script hash used in staking context but corresponding validator declared with wrong validator type keyword
 
 **Not relevant**
 
@@ -271,7 +287,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **ID-202. Inconsistent protocol fees**: Protocol validates individual bounds for lp_fee_num and protocol_fee_num but doesn't enforce their relationship, allowing lp_fee_num + protocol_fee_num > denom and breaking all swap transactions. Requires understanding business logic to determine which fields should have relational constraints
 - **ID-101. Order types may be vulnerable to frontrunning**: Pool doesn't restrict which order contracts can interact with it. Design decision about permissionless interoperability
 - **ID-102. Incorrect assumption in code**: Default branch in swap validation assumes specific delta conditions without checking them, allowing unexpected cases to execute. Logic bug requiring semantic understanding of valid swap cases and business logic
-
 
 ## AMM Dex v2
 
@@ -288,10 +303,10 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **FAC-01. Creation of pools with invalid parameters**: Validator checks datum fields match calculated values but doesn't validate reserves and liquidity are positive, allowing creation of non-functional pools with zero reserves. Requires understanding business logic to determine which datum fields need bounds validation
 - **MIN-01. Logical issue in fee settings**: Validator checks fee percentage ranges but doesn't prevent setting both numerator and denominator to zero, causing division by zero errors in fee calculations. Requires understanding business logic
 - **VAL-01. Centralization related risks**: Privileged admin and batcher tokens grant special permissions that could be abused if compromised. Protocol governance and trust model design issue, not a code pattern
-- **FAC-02. Pool creation allows complete asset withdrawal**: Pool mints LP tokens equal to sqrt(reserve_a * reserve_b), allowing LPs to fully withdraw reserves and make the pool non-functional. Protocol economic design issue that requires understanding the business logic
+- **FAC-02. Pool creation allows complete asset withdrawal**: Pool mints LP tokens equal to sqrt(reserve_a \* reserve_b), allowing LPs to fully withdraw reserves and make the pool non-functional. Protocol economic design issue that requires understanding the business logic
 - **ORD-02. Missing check on io_ratio_denominator**: Validation checks io_ratio_numerator twice instead of checking both numerator and denominator, leaving denominator unchecked. Copy-paste error already caught by standard tooling
 - **AUT-01. Incorrect comment**: Comment placed in front of wrong redeemer type. Documentation issue
-GLOBAL-01. Unit test documentation: Project lacks comprehensive unit tests and test coverage documentation. Testing and QA practice issue, not a code pattern
+  GLOBAL-01. Unit test documentation: Project lacks comprehensive unit tests and test coverage documentation. Testing and QA practice issue, not a code pattern
 - **MIN-02. TODO comments**: Codebase contains TODO comments indicating unfinished tasks. Code maintenance issue
 - **ORD-01. Missing formulas for WithdrawImbalance and PartialSwap**: Documentation lacks formulas for certain order types, marked with TODO placeholders. Documentation issue
 - **ORD-03. Typos**: Recurring typographical errors in comments and messages throughout codebase. Code style issue already caught by spell-checkers
@@ -310,29 +325,29 @@ GLOBAL-01. Unit test documentation: Project lacks comprehensive unit tests and t
 **Relevant**
 
 - **STF-001. UTxO address not validated in Create Forward operation**: Minting policy validates datum and value of output UTxO where token is minted but doesn't verify destination address, allowing tokens to be redirected to arbitrary addresses instead of the Forwards validator.
-<ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
+  <ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
 - **STF-005. Double counting of tokens in values**: Using subset for value validation instead of exact equality allows trash tokens to bloat UTxOs and enables double counting when the same token serves multiple roles, allowing attackers to satisfy multiple checks with overlapping tokens.
-<ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+  <ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 - **STF-201. Prevent inclusion of reference scripts**: Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
-<ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+  <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 - **STF-301. Do Datum comparisons in Data**: Datum comparisons upcast output datum from Data to type rather than downcasting expected datum to Data, which is more expensive.
-<ins>Detectable pattern</ins>: datum equality checks using upcast instead of downcast
+  <ins>Detectable pattern</ins>: datum equality checks using upcast instead of downcast
 
 **May be relevant**
 
 - **STF-003. Double satisfaction in operations that require token burning**: Validator validates exact number of tokens burned in transaction without ensuring only one validator input is spent, allowing attacker to batch multiple UTxOs and burn fewer tokens than required.
-<ins>Detectable pattern</ins>: aggregate mint/burn validation without input uniqueness check [DOUBLE-SATISFACTION]
+  <ins>Detectable pattern</ins>: aggregate mint/burn validation without input uniqueness check [DOUBLE-SATISFACTION]
 - **STF-004. Missing validations in Accept Forward operation**: Validator doesn't verify token minting occurs, doesn't validate collateral UTxO contains required token quantity, and allows accepting forwards with exercise dates in the past.
-<ins>Detectable pattern</ins>: Minting policy that doesn't do any validation at all regarding the tokens being minted.
+  <ins>Detectable pattern</ins>: Minting policy that doesn't do any validation at all regarding the tokens being minted.
 - **STF-006. One Side Deposit can be performed multiple times**: Validator validates output datum boolean fields without checking input datum state, allowing operation to be repeated and reset deposit flags, enabling asset theft.
-<ins>Detectable pattern</ins>: output datum validation without corresponding input datum validation [PARTIAL-UNVALIDATED-DATUM]
+  <ins>Detectable pattern</ins>: output datum validation without corresponding input datum validation [PARTIAL-UNVALIDATED-DATUM]
 - **STF-007 Missing datum fields validation in Create Forward**: Critical datum fields (asset equality, negative amounts, timestamps) are not validated at forward creation. May require understanding if all datum fields actually need validation. [PARTIAL-UNVALIDATED-DATUM]
 
 **Not relevant**
 
 - **STF-002. Potential loss of collateral if neither party deposits the asset**: After the exercise date, if neither party has deposited assets, the Collateral UTxO becomes unspendable because no operation covers this state, permanently locking collaterals. Requires understanding protocol's business logic
 - **STF-101. Users could deposit assets after the exercise date has passed**: Validator uses lower bound of validity range to check deadline not passed, allowing users to set past lower bound while transaction executes after deadline.
-<ins>Detectable pattern</ins>: lower vs upper bound usage for deadline checks, but determining correct bound requires understanding check semantics
+  <ins>Detectable pattern</ins>: lower vs upper bound usage for deadline checks, but determining correct bound requires understanding check semantics
 - **STF-202. One Side Deposit can be bypassed**: Both Sides Deposit operation doesn't verify that one party has already deposited, allowing users to run it when neither party has deposited and gain control of both collaterals. Requires understanding protocol's business logic
 - **STF-203. Party identity can be forged**: Redeemer specifies which party performs deposit operation without validator verifying that party's signature, allowing anyone to submit transactions claiming to be either party. Requires understanding protocol's authorization model
 - **STF-302. Clean up output lookup in Both Sides Deposit**: Multiple filter operations used to identify specific outputs instead of pattern matching on filtered list. Code organization suggestion
@@ -353,17 +368,17 @@ GLOBAL-01. Unit test documentation: Project lacks comprehensive unit tests and t
 **Relevant**
 
 - **SSW-001. Create pool doesn't validate the pool output address**: Minting policy mints pool NFT without verifying destination address, allowing attacker to mint NFT to their wallet and impersonate pools to steal order funds.
-<ins>Detectable pattern</ins>: minting policy missing destination address validation [MISSING-ADDRESS-VALIDATION]
+  <ins>Detectable pattern</ins>: minting policy missing destination address validation [MISSING-ADDRESS-VALIDATION]
 - **SSW-002. Pool output address is not correctly checked in scoop operation**: PoolScoop redeemer doesn't validate payment credential of continuing pool output, allowing scooper to redirect pool funds to arbitrary address.
-<ins>Detectable pattern</ins>: continuing output without payment credential validation [MISSING-ADDRESS-VALIDATION]
+  <ins>Detectable pattern</ins>: continuing output without payment credential validation [MISSING-ADDRESS-VALIDATION]
 - **SSW-101. Settings datum size is limited forever by the initially locked ADA**: Settings validator enforces exact value equality preventing adding ADA when datum grows and requires higher minUTxO.
-<ins>Detectable pattern</ins>: exact ADA/lovelace equality on continuing output values without accounting for variable minUTxO requirements [STRICT-VALUE-EQUALITY]
+  <ins>Detectable pattern</ins>: exact ADA/lovelace equality on continuing output values without accounting for variable minUTxO requirements [STRICT-VALUE-EQUALITY]
 - **SSW-202. Metadata output datum not checked in pool create**: Pool creation doesn't validate metadata output has datum, potentially creating unspendable UTxO if metadata address is a script.
-<ins>Detectable pattern</ins>: outputs to addresses without datum validation [UNVALIDATED-DATUM]
+  <ins>Detectable pattern</ins>: outputs to addresses without datum validation [UNVALIDATED-DATUM]
 - **SSW-308. No checks on settings UTxO when it is created**: Settings NFT minting policy validates minting but not destination address or initial UTxO state.
-<ins>Detectable pattern</ins>: minting without validating initial conditions, but determining correct initial state requires protocol understanding [MISSING-ADDRESS-VALIDATION]
+  <ins>Detectable pattern</ins>: minting without validating initial conditions, but determining correct initial state requires protocol understanding [MISSING-ADDRESS-VALIDATION]
 - **SSW-313. UpdatePoolFees doesn't require the settings UTxO as reference input**: Validator requires settings UTxO as reference input for UpdatePoolFees but doesn't use it, creating unnecessary off-chain requirement.
-<ins>Detectable pattern</ins>: reference input required but never accessed in validation logic
+  <ins>Detectable pattern</ins>: reference input required but never accessed in validation logic
 
 **May be relevant**
 

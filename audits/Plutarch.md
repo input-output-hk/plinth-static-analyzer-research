@@ -1,5 +1,30 @@
 # Plutarch Audit Summaries
 
+## Overview
+
+This document summarizes findings from **4 Plutarch audits** in the Cardano ecosystem.
+
+**Findings Classification:**
+
+- **Relevant findings:** 5
+- **May be relevant findings:** 8
+- **Not relevant findings:** 68
+- **Total findings:** 81
+
+### Common Patterns
+
+Common issues in Plutarch smart contracts include:
+
+1. **Incomplete Token Validation (2 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]:** Validators that check currency symbol but not token name, or vice versa. This pattern allows attackers to use wrong tokens (with correct symbol but wrong name) or mint unauthorized tokens under the same policy, leading to vote manipulation and authentication bypass.
+
+2. **Trash Tokens (2 occurrences) - [TRASH-TOKENS]:** Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens.
+
+3. **Operations Without State Changes (2 occurrences) - [UNCHANGED-STATE]:** Validators that allow operations to succeed without modifying any state, enabling denial-of-service attacks by repeatedly executing transactions that pass validation but accomplish nothing.
+
+4. **Unvalidated Datum (2 occurrences) - [UNVALIDATED-DATUM]:** Validator fails to validate datum fields on continuing outputs, allowing datum tampering and collateral theft. .
+
+5. **Missing Address Validation (1 occurrence) - [MISSING-ADDRESS-VALIDATION]:** Minting policy that validates token properties without verifying the destination address, allowing critical borrow tokens to be redirected and enabling market drainage attacks.
+
 ## Agora, Agora pro
 
 **Auditor**: VacuumLabs
@@ -13,15 +38,15 @@
 **May be relevant**
 
 - **AGO-105. Stake ST token name not checked:** Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.
-<ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 - **AGO-104. Attacker can fail any voted-on/locked proposal:** Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
 - **AGO-203. Stakes can be frozen effectively forever by the multisig entity:** Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
 - **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit:** Function validates currency symbol but not token name of stake ST.
-<ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 - **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes:** Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.
-<ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+  <ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
 - **AGO-401. Staking credential is undefined:** Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.
-<ins>Detectable pattern</ins>: script addresses without defined staking credentials
+  <ins>Detectable pattern</ins>: script addresses without defined staking credentials
 
 **Not relevant**
 
@@ -58,10 +83,11 @@
 ### Findings
 
 **May be relevant**
+
 - **LIQV1-001. Retrieving the collateral without repaying allows for draining a market:** Borrow token minting policy doesn't verify the output address where the new borrow token is sent, allowing attacker to redirect collateral to a malicious script instead of the proper loan validator.
-<ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
+  <ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
 - **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum:** Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification.
-<ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
+  <ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
 
 **Not relevant**
 
@@ -72,7 +98,7 @@
 - **LIQV1-007. Market can be drained by tricking the checkQTokenRate:** Validation checks inequality based on one variable's sign without validating sign consistency between related variables, allowing invalid state transitions. Requires understanding reachable states
 - **LIQV1-101. Incorrect reserve calculation can require liquidity deposit for batching:** Calculation uses intermediate variable values before updates rather than final computed values. Logic bug requiring semantic understanding of intended calculation
 - **LIQV1-102. A quick loan is without interest—staking rewards can be stolen:** Interest calculation allows borrowing for short periods without charges. Protocol economic design issue
-- **LIQV1-103. Staking rewards can be withdrawn while redeeming liquidity:** Conditional validation logic allows bypassing staking reward checks in certain branches. Logic bug and consequence of - **LIQV1-007
+- **LIQV1-103. Staking rewards can be withdrawn while redeeming liquidity:** Conditional validation logic allows bypassing staking reward checks in certain branches. Logic bug and consequence of - \*\*LIQV1-007
 - **LIQV1-201. Interest is accrued even after a loan is paid back:** Interest calculation continues accumulating rather than stopping at loan repayment. Logic bug requiring understanding business logic
 - **LIQV1-202. Negative interest is outstanding after a loan is paid back:** Same value subtracted twice in related calculations, causing incorrect result. Logic bug
 - **LIQV1-203. Oracle exchange rate is a simple number:** Price oracle design doesn't account for asset's liquidity. Protocol design issue
@@ -104,19 +130,18 @@
 
 **Auditee**: WingRiders
 
-**Description:** WingRiders v2 is an extension and rewrite of the WingRiders DEX  supporting both constant-product and stableswap AMM pools. The protocol heavily relies on authority tokens, datums, and scripted accounting, which introduces multiple risks related to unchecked parameter updates, invariant enforcement, and output composition.
+**Description:** WingRiders v2 is an extension and rewrite of the WingRiders DEX supporting both constant-product and stableswap AMM pools. The protocol heavily relies on authority tokens, datums, and scripted accounting, which introduces multiple risks related to unchecked parameter updates, invariant enforcement, and output composition.
 
 ### Findings
 
 **Relevant**
 
 - **WR2-201. Anyone can block script fee beneficiary funds**: Validator doesn't validate datum attached to outputs sent to script addresses, allowing arbitrary datums that may prevent beneficiary script from spending.
-<ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
+  <ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
 - **WR2-303 Additional tokens may make compensation output unspendable**: Compensation outputs allowed arbitrary extra tokens, potentially breaking downstream scripts.
-<ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+  <ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 - **WR2-405. Zap-in swapA is not sanitized**: Numeric redeemer parameter used directly in arithmetic operations without any validation.
-<ins>Detectable pattern</ins>: redeemer fields (untrusted user input) used without validation
-
+  <ins>Detectable pattern</ins>: redeemer fields (untrusted user input) used without validation
 
 **Not relevant**
 
@@ -146,9 +171,9 @@
 **Relevant**
 
 - **MTOK-202. Filling up the UTxOs with arbitrary tokens**: Validator doesn't restrict which tokens can be included in Archive and Locker UTxOs, allowing attackers to bloat them with arbitrary tokens and cause transactions to hit size limits.
-<ins>Detectable pattern</ins>: subset value validation instead of exact equality check [TRASH-TOKENS]
+  <ins>Detectable pattern</ins>: subset value validation instead of exact equality check [TRASH-TOKENS]
 - **MTOK-302. Denial of service of the Archive**: Archive UTxO can be included in arbitrary transactions without performing its intended function (adding tokens or processing Lockers), enabling DoS attacks.
-<ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+  <ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
 
 **Worth Noting**
 
@@ -169,4 +194,3 @@ plustan04 = mkAntiPatternInspection (Id "PLU-STAN-04") "Usage of eq instance of 
 - **MTOK-201 Merging of Archive UTxOs leads to unwarranted gains**: Whoever performs the merging of Archive UTxOs can claim the min-ADA from the inputs for themselves. Economic/fairness issue
 - **MTOK-301 High value of ldRefundAMount freezes min-Ada**: ldRefundAmount datum field determines the amount of Ada that is refunded during the Cleanup tx, but if the amount is set higher than the amount of Ada present, whoever does the Cleanup has to provide the extra Ada. Requires understanding what datum fields represent in business logic
 - **MTOK-401 Locker fee can disincentivize the use of the standard workflow**: The standard workflow leads to a total cost equal to the Locker fee plus tx fees. Alternatively it could be just the min-Ada and tx fees. (Setting Locker Fees to high can disincentivize users to use the intended standard flow). Protocol economics issue
-
