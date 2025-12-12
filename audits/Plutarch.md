@@ -37,16 +37,12 @@ Common issues in Plutarch smart contracts include:
 
 **May be relevant**
 
-- **AGO-105. Stake ST token name not checked:** Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.
-  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AGO-105. Stake ST token name not checked:** Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 - **AGO-104. Attacker can fail any voted-on/locked proposal:** Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
 - **AGO-203. Stakes can be frozen effectively forever by the multisig entity:** Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
-- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit:** Function validates currency symbol but not token name of stake ST.
-  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes:** Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.
-  <ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
-- **AGO-401. Staking credential is undefined:** Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.
-  <ins>Detectable pattern</ins>: script addresses without defined staking credentials
+- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit:** Function validates currency symbol but not token name of stake ST.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes:** Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+- **AGO-401. Staking credential is undefined:** Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.<br><ins>Detectable pattern</ins>: script addresses without defined staking credentials
 
 **Not relevant**
 
@@ -84,10 +80,8 @@ Common issues in Plutarch smart contracts include:
 
 **May be relevant**
 
-- **LIQV1-001. Retrieving the collateral without repaying allows for draining a market:** Borrow token minting policy doesn't verify the output address where the new borrow token is sent, allowing attacker to redirect collateral to a malicious script instead of the proper loan validator.
-  <ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
-- **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum:** Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification.
-  <ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
+- **LIQV1-001. Retrieving the collateral without repaying allows for draining a market:** Borrow token minting policy doesn't verify the output address where the new borrow token is sent, allowing attacker to redirect collateral to a malicious script instead of the proper loan validator.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
+- **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum:** Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification.<br><ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
 
 **Not relevant**
 
@@ -136,12 +130,9 @@ Common issues in Plutarch smart contracts include:
 
 **Relevant**
 
-- **WR2-201. Anyone can block script fee beneficiary funds**: Validator doesn't validate datum attached to outputs sent to script addresses, allowing arbitrary datums that may prevent beneficiary script from spending.
-  <ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
-- **WR2-303 Additional tokens may make compensation output unspendable**: Compensation outputs allowed arbitrary extra tokens, potentially breaking downstream scripts.
-  <ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
-- **WR2-405. Zap-in swapA is not sanitized**: Numeric redeemer parameter used directly in arithmetic operations without any validation.
-  <ins>Detectable pattern</ins>: redeemer fields (untrusted user input) used without validation
+- **WR2-201. Anyone can block script fee beneficiary funds**: Validator doesn't validate datum attached to outputs sent to script addresses, allowing arbitrary datums that may prevent beneficiary script from spending.<br><ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
+- **WR2-303 Additional tokens may make compensation output unspendable**: Compensation outputs allowed arbitrary extra tokens, potentially breaking downstream scripts.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+- **WR2-405. Zap-in swapA is not sanitized**: Numeric redeemer parameter used directly in arithmetic operations without any validation.<br><ins>Detectable pattern</ins>: redeemer fields (untrusted user input) used without validation
 
 **Not relevant**
 
@@ -170,10 +161,8 @@ Common issues in Plutarch smart contracts include:
 
 **Relevant**
 
-- **MTOK-202. Filling up the UTxOs with arbitrary tokens**: Validator doesn't restrict which tokens can be included in Archive and Locker UTxOs, allowing attackers to bloat them with arbitrary tokens and cause transactions to hit size limits.
-  <ins>Detectable pattern</ins>: subset value validation instead of exact equality check [TRASH-TOKENS]
-- **MTOK-302. Denial of service of the Archive**: Archive UTxO can be included in arbitrary transactions without performing its intended function (adding tokens or processing Lockers), enabling DoS attacks.
-  <ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+- **MTOK-202. Filling up the UTxOs with arbitrary tokens**: Validator doesn't restrict which tokens can be included in Archive and Locker UTxOs, allowing attackers to bloat them with arbitrary tokens and cause transactions to hit size limits.<br><ins>Detectable pattern</ins>: subset value validation instead of exact equality check [TRASH-TOKENS]
+- **MTOK-302. Denial of service of the Archive**: Archive UTxO can be included in arbitrary transactions without performing its intended function (adding tokens or processing Lockers), enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
 
 **Worth Noting**
 
