@@ -2,12 +2,12 @@
 
 ## Overview
 
-This document summarizes findings from **13 Aiken audits** in the Cardano ecosystem.
+This document summarizes findings from **20 Aiken audits** in the Cardano ecosystem.
 
 **Findings Classification:**
 
-- **Relevant findings:** 17
-- **May be relevant findings:** 35
+- **Relevant findings:** 38
+- **May be relevant findings:** 38
 - **Not relevant findings:** 84
 - **Total findings:** 136
 
@@ -196,14 +196,146 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ## Private Audit #02
 
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
 ### Findings
 
 **May be relevant**
 
 - **ID-01. Unvalidated Datum on Creation and Update:** UTxO datum is not checked on creation and update transactions. May require understanding if all datum fields actually need validation.<br><ins>Detectable pattern</ins>: outputs to script addresses without datum validation or with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
 
+## Private Audit #05
+
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+### Findings
+
+**Relevant**
+
+- **ID-01. Output value not validated:** Protocol operations don't validate output values, allowing arbitrary tokens to be added.
+  <ins>Detectable pattern</ins>: output value validation without token restriction checks [TRASH-TOKENS]
+- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script fields in outputs, allowing arbitrary reference scripts to be attached and increasing future transaction fees.
+  <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+
+## Private Audit #06
+
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+### Findings
+
+**Relevant**
+
+- **ID-01. Multiple tokens can be minted:** Minting policy validates token presence without enforcing exactly one token is minted, allowing extra tokens to be created.
+  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
+  <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+- **ID-03. Trash Tokens Allowed:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.
+  <ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
+
+**May be relevant**
+
+- **ID-04. Missing datum field validation:** Protocol outputs may store incorrect data in datum fields, making them unprocessable since certain fields have no validation.
+  <ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
+
+## Private Audit #07
+
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+### Findings
+
+**Relevant**
+
+- **ID-01. Incomplete Token Validation:** Validator checks token currency symbol without verifying token name, allowing wrong tokens from same policy to be used.
+  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **ID-02. Arbitrary Token Minting:** Minting policy allows minting whenever an authorization token appears in any input, even when coming from a script instead of authorized wallet. Combined with protocol threading allows arbitrary token minting.
+  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+
+## Private Audit #08
+
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+### Findings
+
+**Relevant**
+
+- **ID-01. Missing Datum Validation:** Validator creates output at script address without validating datum, potentially creating unspendable UTxO.
+  <ins>Detectable pattern</ins>: output creation without datum validation [UNVALIDATED-DATUM]
+- **ID-02. Missing Address and Datum Validation:** Validator creates output without validating address or datum, allowing tokens to be misdirected or creating unspendable outputs.
+  <ins>Detectable pattern</ins>: output creation without address and datum validation [MISSING-ADDRESS-VALIDATION] [UNVALIDATED-DATUM]
+- **ID-03. Unbounded Validity Range Exploitation:** Validator uses transaction's validity bound for calculations without restricting validity range length, allowing artificially inflated values and exploitation.
+  <ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
+- **ID-04. Operations Allow Invalid Initial State:** Protocol allows creating outputs with arbitrarily low start time without restricting validity interval length, enabling exploitation through accumulated values.
+  <ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
+- **ID-05. Token Quantity Not Validated:** Validator checks token presence without validating quantity > 0, allowing zero-quantity tokens to satisfy checks.
+  <ins>Detectable pattern</ins>: token presence check without quantity validation [INCOMPLETE-TOKEN-VALIDATION]
+- **ID-06. Protocol Outputs Can Include Trash Tokens:** Output creation lacks validation allowing arbitrary tokens that can be merged into valid UTxOs.
+  <ins>Detectable pattern</ins>: output value validation without token restriction checks [TRASH-TOKENS]
+- **ID-07. Output Contains Wrong Tokens:** Protocol operation does not validate output value.
+  <ins>Detectable pattern</ins>: output value validation without token restriction checks [TRASH-TOKENS]
+- **ID-08. Identifier Token Name Not Validated:** Validator does not validate the token name of the minted identifier token.
+  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+
+## Private Audit #09
+
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+### Findings
+
+**Relevant**
+
+- **ID-01. Incomplete Value Validation:** Validator checked only that the UTxO contained some non-zero value, but not what that value consisted of. An attacker could insert a useless dummy token to satisfy the validator, while providing less than the protocol-required minimum ADA.
+  <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **ID-02. Unvalidated Destination Address:** Minting policy doesn't validate that minted tokens are sent to the correct validator address.
+  <ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
+- **ID-03. Trash Tokens on Update:** When updating a script UTxO, the validator allows extra native tokens to be added accidentally. This could permanently lock the UTxO and force redeployment.
+  <ins>Detectable pattern</ins>: subset value validation instead of equality check on continuing outputs [TRASH-TOKENS]
+
+**May be relevant**
+
+- **ID-04. Multiple Satisfaction Issue:** Validator filters inputs by token presence without validating count of matching UTxOs.
+  <ins>Detectable pattern</ins>: absence of quantity validation after filtering for specific tokens could be flagged as warning [DOUBLE-SATISFACTION]
+
+## Private Audit #10
+
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+### Findings
+
+**Relevant**
+
+- **ID-01. Exact Value Equality on Updates:** Pool value check uses exact value equality preventing ADA addition when datum size increases.
+  <ins>Detectable pattern</ins>: exact equality on continuing output values without accounting for variable minUTxO requirements [STRICT-VALUE-EQUALITY]
+- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
+  <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+
+**May be relevant**
+
+- **ID-03. Datum Fields Not Checked at Creation:** There are no checks on certain datum fields when creating outputs. As a result, it is possible to create outputs that do not satisfy protocol invariants.
+  <ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
+
 ## Private Audit #11
 
+<<<<<<< Updated upstream
+=======
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+>>>>>>> Stashed changes
 ### Findings
 
 **Relevant**
@@ -212,8 +344,30 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 - **ID-03. Trash Tokens Allowed:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 
+## Private Audit #12
+
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+### Findings
+
+**Relevant**
+
+- **ID-01. Exact Value Equality on Updates:** Pool value check uses exact value equality preventing ADA addition when datum size increases.
+  <ins>Detectable pattern</ins>: exact equality on continuing output values without accounting for variable minUTxO requirements [STRICT-VALUE-EQUALITY]
+- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field in script outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
+  <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+
 ## Private Audit #14
 
+<<<<<<< Updated upstream
+=======
+**Auditor**: [No description provided]
+
+**Description**: [No summary provided]
+
+>>>>>>> Stashed changes
 ### Findings
 
 **Relevant**
