@@ -196,10 +196,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ## Private Audit #02
 
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
-
 ### Findings
 
 **May be relevant**
@@ -207,10 +203,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **ID-01. Unvalidated Datum on Creation and Update:** UTxO datum is not checked on creation and update transactions. May require understanding if all datum fields actually need validation.<br><ins>Detectable pattern</ins>: outputs to script addresses without datum validation or with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
 
 ## Private Audit #05
-
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
 
 ### Findings
 
@@ -222,10 +214,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
   <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 
 ## Private Audit #06
-
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
 
 ### Findings
 
@@ -245,10 +233,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ## Private Audit #07
 
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
-
 ### Findings
 
 **Relevant**
@@ -259,10 +243,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
   <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 
 ## Private Audit #08
-
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
 
 ### Findings
 
@@ -287,10 +267,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ## Private Audit #09
 
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
-
 ### Findings
 
 **Relevant**
@@ -309,10 +285,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ## Private Audit #10
 
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
-
 ### Findings
 
 **Relevant**
@@ -329,13 +301,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ## Private Audit #11
 
-<<<<<<< Updated upstream
-=======
-**Auditor**: [No description provided]
 
-**Description**: [No summary provided]
-
->>>>>>> Stashed changes
 ### Findings
 
 **Relevant**
@@ -345,10 +311,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **ID-03. Trash Tokens Allowed:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 
 ## Private Audit #12
-
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
 
 ### Findings
 
@@ -361,13 +323,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ## Private Audit #14
 
-<<<<<<< Updated upstream
-=======
-**Auditor**: [No description provided]
 
-**Description**: [No summary provided]
-
->>>>>>> Stashed changes
 ### Findings
 
 **Relevant**
@@ -673,3 +629,210 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **SPH-202 - Users can vote multiple times per epoch/proposal**: Users can redeem VE, recreate it, and vote again within the same period if lock expires mid-voting. Requires understanding voting power and the specific business logic of the protocol
 - **SPH-204 Users can vote on Governance Proposals up to 12 hours after deadline**: Deadline check allows users to vote up to 12 hours after the deadline. Requires understanding the purpose of the validity interval
 - **SPH-301 Proposal creation: governance_power_policy not validated**: Proposal datum field has no check on the correctness of the expected value, so it may reference an arbitrary governance power policy. It requires understanding purpose of datum field
+
+## AADA v1.1
+
+**Auditor**: VacuumLabs
+
+**Auditee**: Aada Finance
+
+**Description**: A peer-to-peer decentralized lending protocol on Cardano where borrowers create collateralized loan requests and lenders fulfill them. Borrower and Lender positions are represented by transferable NFTs, enabling repayment, liquidation, or secondary-market transfers. The protocol supports early repayment with time-proportional interest, oracle-based liquidations, and enforces a minimum interest payment.
+
+### Findings
+
+**Relevant**
+
+- **AADAIK-001. Attacker can spoof AADA NFTs and impersonate their rightful holders**: Function validate_token_mint validates specific token tuple is minted but doesn't check exclusivity, allowing attacker to mint additional tokens with different names in same transaction.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+
+**May be relevant**
+
+- **AADAIK-102. Double satisfaction among different scripts**: Validators prevent double satisfaction only among same protocol's script inputs, allowing attacker to batch with other protocol's scripts expecting payment to same party.<br><ins>Detectable pattern</ins>: double satisfaction prevention checking only same-script inputs without restricting other script inputs [DOUBLE-SATISFACTION]
+- **AADAIK-202. Interest calculation is imprecise**: Interest calculation uses division before multiplication (elapsed / total) * amount, losing precision compared to (elapsed * amount) / total.<br><ins>Detectable pattern</ins>: division before multiplication losing precision [PRECISION-LOSS]
+- **AADAIK-203. ADA locked by the protocol can not be staked**: Contract addresses constructed with None as staking credential and validator enforces no staking credential on inputs, preventing staking of locked ADA.<br><ins>Detectable pattern</ins>: missing staking credential in script addresses [UNVALIDATED-STAKING]
+
+**Not relevant**
+
+- **AADAIK-002 Lender can liquidate and take the whole collateral as soon as he lends**: Liquidation logic compares if the loan deadline is after the lower bound of the transaction validity range, which can be set in the past, allowing lenders to liquidate collateral immediately after lending. Requires understanding the usage of validity range
+- **AADAIK-003 Borrower is not able to repay the loan and loses the collateral**: Functions use asset_name instead of policy_id parameter in from_asset function call, causing validation failures. Logic bug requiring understanding of function parameter semantics
+- **AADAIK-101 Borrower can pay only min interest for any loan**: Interest calculation uses a user controlled lower validity bound, allowing borrowers to fake early repayment times and pay only the minimum interest. Requires understanding the business logic and use of validity range
+- **AADAIK-103 Lender can collect interest immediately**: The lender can set the loan start time in the past, forcing borrowers to pay full interest even if little or no time has elapsed. Requires understanding the meaning of datum fields
+- **AADAIK-201 Expiration setting of borrow request is not enforced**: Expiration checks rely on the lower validity bound, which can be arbitrarily old, allowing expired loan requests to be accepted. Requires understanding usage of validity range
+- **AADAIK-301 The collateral amount is set by the lender for the borrower**: The lender defines the collateral amount in the datum, which may not reflect the actual deposited collateral, potentially triggering premature liquidation. Requires understanding the protocol's business logic
+- **AADAIK-302 Other code suggestions**: Naming inconsistencies, unused code, misleading variable names, and scattered constants. Code quality issues already caught by standard tooling
+
+## Iagon Delegation v3
+
+**Auditor**: VacuumLabs
+
+**Auditee**: Iagon
+
+**Description**: Iagon Delegation v3 is a centralized Cardano staking and delegation system for the IAG token, where most security critical logic relies on a mutable reference UTxO and a powerful operator hot key. Nodes, delegations, and secondary market sales of delegated stake are enforced on-chain, but operator and reference keepers have sweeping control, making governance, correctness, and key compromise the primary risk surface.
+
+### Findings
+
+**Relevant**
+
+- **ID3-101 Reference keepers might block all scripts and value**: Reference keepers can move the genesis token to an arbitrary address, breaking all scripts and locking all protocol funds. <br><ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
+- **ID3-306. Node can be moved to any address during an update**: Node update doesn't validate new node UTxO address remains unchanged, allowing redirection to arbitrary address. <br><ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
+- **ID3-308. Delegation can be moved to any address during an update**: Delegation update doesn't validate new delegation UTxO address remains unchanged, allowing redirection to arbitrary address. <br><ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
+- **ID3-309. Split delegation UTxOs are mostly unchecked**: Split delegation creates new delegation UTxOs with arbitrary addresses and unchecked datums, only validating value contains delegation token and IAG stake. <br><ins>Detectable pattern</ins>: output creation with incomplete validation (address and datum unchecked) [MISSING-ADDRESS-VALIDATION] [UNVALIDATED-DATUM]
+- **ID3-311. The payment output could contain dust tokens**: Payment output validation doesn't restrict tokens to Ada only, allowing arbitrary tokens that increase minAda and reduce usable value to the seller. <br><ins>Detectable pattern</ins>: subset value validation without token restriction checks [TRASH-TOKENS]
+
+**May be relevant**
+
+- **ID3-103. Reference keepers might block all scripts and value II**: Reference keepers can make keeper list arbitrarily long, causing reference UTxO to exceed transaction size or execution limits in dependent scripts. <br><ins>Detectable pattern</ins>: unbounded list length without size validation
+- **ID3-302 Order tokens can be freely minted**: Burn redeemer also allows minting arbitrary order tokens, bypassing mint validation. <br><ins>Detectable pattern</ins>: No exclusivity enforced on burning
+- **ID3-303. Operator can mint any node, order and delegation tokens**: Minting policy validates a mint occurs but doesn't restrict to specific token name in redeemer, allowing operator to mint arbitrary additional tokens with different names. <br><ins>Detectable pattern</ins>: minting validation without token name exclusivity [INCOMPLETE-TOKEN-VALIDATION]
+- **ID3-312. The payment output can be staked to any credential**: Payment output staking credential unchecked, allowing operator to choose arbitrary credential. <br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
+- **ID3-408. Some fields are not used nor verified on-chain**: Datum fields not validated on-chain, relying on operator to set correctly. <br><ins>Detectable pattern</ins>: datum fields without validation [PARTIAL-UNVALIDATED-DATUM]
+
+**Not relevant**
+
+- **ID3-102. Node and delegation can not withdraw without the operator**: All withdrawals require the operator’s signature, meaning funds are locked when the operator is unavailable. Protocol governance and trust model issue
+- **ID3-104. Reference keepers can steal Ada contained in orders**: Reference keepers can update delegation contract hash in reference datum to malicious contract, allowing validation delegation to dummy validator and theft of order value. Requires understanding protocol's business logic and multi-validator coordination
+- **ID3-301. Operator as the sole guarantor of unique id computation**: Token uniqueness is not enforced on-chain and relies entirely on operator not making mistakes. Protocol design decision about token name generation
+- **ID3-304. Delayed order signature is not necessary**: Order processing validates delayed signature even though order keeper already signed full transaction with complete datum. Code complexity and redundancy requiring understanding of authorization model
+- **ID3-305. Reference keepers might lock themselves out of the protocol**: Reference keepers can update their own list without validating new list can achieve an unusable configuration. Requires understanding protocol governance and authorization model
+- **ID3-307. Delegation seller may receive slightly smaller compensation**: Price calculation uses floor division causing seller to lose up to 1 lovelace due to rounding. Requires understanding correct rounding direction for business logic
+- **ID3-313. Orders do not protect against delegation sale price change**: Orders remain valid after delegation price changes, allowing operator to keep price difference if price drops. Protocol design decision about price change handling
+- **ID3-401. plutus.json does not correspond to the code**: Compiled artifacts outdated compared to source code. Code maintenance and build process issue
+- **ID3-402. Genesis token name is unnecessarily complex**: Genesis token name computation captures uniqueness already reflected in policy id, making name computation redundant. Code complexity and design decision about token naming
+- **ID3-403. Grammar issues, typos, semantics**: Various grammar errors and typos throughout documentation and comments. Documentation issues
+- **ID3-404. Copy paste errors**: Incorrect terminology derived from reused code. Documentation issue
+- **ID3-405. Excessive comments**: Almost every line has comments that repeat what code already says instead of explaining non-trivial logic. Documentation and code style issue
+- **ID3-406. Naming**: Ambiguous naming obscures semantics of fields and variables. Code style and naming issues
+- **ID3-407. Delegation can be delegated to a non-existent or inactive node**: Node validity is not enforced in delegation update and split flows, unlike in creation flow. Requires understanding protocol's business logic and validation consistency requirements
+- **ID3-409. Multiple order trades not possible in a single transaction**: Comment claims parallelization possible but minting policy allows exactly one burn per transaction. Documentation inconsistency with implementation
+
+## Cardano Casino v1.0
+
+**Auditor**: VacuumLabs
+
+**Auditee**: [Not provided]
+
+**Description**: On-chain settlement layer of a Cardano casino game. Smart contracts manage bets, payouts, fees, and bank funds, while all game logic, randomness, and outcome determination happen off-chain and are enforced via a trusted backend key. User bets are locked on-chain, resolved by the backend, and winnings are paid from shared Bank UTxOs under admin control.
+
+
+### Findings
+
+**Relevant**
+
+- **CCA-003. Value checks are not satisfiable**: Validator uses value.policies function and asserts result equals specific list of policies, but list doesn't include Ada policy (#"") which is present in every UTxO, making all checks unsatisfiable and preventing protocol operation.<br><ins>Detectable pattern</ins>: value.policies equality check without accounting for Ada policy
+- **CCA-303. Strict Ada amount comparison**: Validator requires exact Ada amount in output UTxOs without accounting for minAda requirements, making UTxO creation infeasible when computed amount is below minAda threshold.<br><ins>Detectable pattern</ins>: exact equality on ADA amounts in output validation [STRICT-VALUE-EQUALITY]
+- **CCA-304. UTxOs can be polluted by dust tokens**: Validator checks only Ada value without restricting other tokens, allowing arbitrary tokens to be added to UTxOs and causing transaction loading issues.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+
+**May be relevant**
+
+- **CCA-201 Empty transactions**: Transactions with no valid updates can reshuffle UTxOs, blocking legitimate backend operations.<br><ins>Detectable pattern</ins>: Allowing transactions without enforcing meaningful actions [UNCHANGED-STATE]
+- **CCA-204. Double satisfaction on Bet owner's compensation**: Validator checks only own script inputs when validating compensation payment to Bet owner's address, allowing multiple scripts expecting payment to the same address to be satisfied with single payment.<br><ins>Detectable pattern</ins>: value aggregation filtering by address without script input uniqueness check [DOUBLE-SATISFACTION]
+- **CCA-301. Staking credentials are not handled**: Validator doesn't check staking credentials on user deposits and Bank UTxOs, allowing transaction authors to allocate future staking rewards to themselves.<br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
+- **CCA-306 Owner’s staking credential can be set arbitrarily**: Wins are paid to a pubkey hash without staking credentials, allowing backend manipulation.<br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
+
+**Not relevant**
+
+- **CCA-001. User deposits can be stolen**: Deposits can be spent in update transactions with zero valid requests and without enforcing backend or user signatures, allowing arbitrary theft. Requires understanding protocol workflow and which operations require signatures
+- **CCA-002. Missing incentives for users to sign a transaction**: UpdateRequests require both Casino and user signatures, but users have no incentive to sign transactions causing them losses since they can inspect game results before signing. Protocol economic design
+- **CCA-101. UpdateRequests can be invalidated**: Validator filters UpdateRequests by signature validity but doesn't reject transactions containing incorrectly signed requests, allowing attackers to remove valid requests from the chain and steal their Ada. Requires understanding protocol's request validation model
+- **CCA-102. The backend key can take over the protocol**: All UTxO types share the same validator, allowing backend to use FulfilBet redeemer to be missused e.g. on Admin UTxO and modify protocol ownership or halt protocol. Requires understanding which redeemers should be valid for which UTxO types
+- **CCA-103. Unaccounted Bet funds**: Balance calculation doesn't account for fees locked in Bet UTxO, allowing unaccounted funds to be stolen when the user wins. Requires understanding protocol's accounting model and intended fund flows
+- **CCA-202. No key redundancy and rotation possibility**: Hardcoded keys with no redundancy or rotation mechanism make the protocol fragile to loss or compromise (key loss halts protocol, key compromise enables fund theft). Protocol governance and key management design issue
+- **CCA-203. Non-transparent off-chain computation**: Critical payout values are computed off-chain, passed as redeemers and blindly trusted on-chain, risking bank drainage. Requires understanding which calculations should be on-chain versus delegated to off-chain
+- **CCA-302. Single key can withdraw Bank funds**: Backend key alone can withdraw all Bank funds by creating arbitrary winning UpdateRequests/Bets, while Bank withdrawal requires two keys. Protocol governance and trust model issue
+- **CCA-305 UTxOs with a defined staking credential are unprotected**: Script input discovery fails when staking credentials are present, leaving UTxOs unrestricted. Requires understanding usage of addresses
+- **CCA-401. Every UTxO validates the whole transaction**: Validator runs identical validation for each script UTxO in transaction instead of validating once, increasing fees and limiting batch size. Requires understanding protocol's transaction structure and which validations can be safely deduplicated
+- **CCA-402. Bank inputs and outputs not used in all code branches**: Variables computed before validation but only used in specific redeemer branches, wasting computation in other branches. Code organization issue requiring understanding which branches use which variables
+- **CCA-403. Fee can be set in whole percents only**: Fee protocol parameter denominated in whole percents without finer granularity (e.g., 2.5% impossible). Protocol design decision about parameter precision and representation
+- **CCA-404. Duplicated code**: Code performs the same computations in multiple places using duplicated lines instead of common functions. Code duplication issue already caught by standard tooling
+- **CCA-405. Unnecessary redeemer in UpdateAdminData**: UpdateAdminData redeemer contains data that mirrors what's already in the signed transaction, making it redundant since admin signature already authorizes the change. Requires understanding authorization model and what data is redundant given transaction structure
+- **CCA-406. Suggest upgrading Aiken and stdlib**: Project uses outdated Aiken version, newer versions include useful features like compiler version in compiled artifacts. Dependency and maintenance issue specific to AIken
+- **CCA-407. Unnecessarily strict checks on reference inputs**: Function get_admin_data unnecessarily restricts reference inputs to inline datums only, limiting transaction flexibility. Requires understanding which reference inputs should be validated versus ignored
+- **CCA-408. Fee increase could disable active Bets**: Admin fee could change retroactively invalidating existing bets. Protocol design issue requiring off-chain coordination between fee changes and bet resolution
+
+## Cardano Casino v1.1
+
+**Auditor**: VacuumLabs
+
+**Auditee**: [Not provided]
+
+**Description**: The most important change from the v1.0 is the change of the multiplier type which was changed from an integer to a rational number. That allows for a more granular game setup.
+
+
+### Findings
+
+**Not relevant**
+
+- **CCA2-401 Artefacts do not contain script version**: The compiled plutus.json artefacts do not reflect the updated script version specified in aiken.toml. Build process and maintenance issue specific to Aiken
+- **CCA2-402 Not formatted code**: Codebase was not formatted, resulting in inconsistent styling. Code style issue already caught by standard tooling
+
+## Pondora v2 (v1.0)
+
+**Auditor**: Invariant0
+
+**Auditee**: Pond Labs
+
+**Description**: Pondora v2 is a smart account framework for Cardano that lets users lock funds into a programmable vault (“Pond”) and authorize intents describing how and when funds may be used. Intents are authorized on-chain or off-chain (via Merkle roots) and executed by third parties or batchers. Security relies heavily on correct intent authorization, ownership binding through labels, and cross-module accounting, making it highly sensitive to validation gaps, redeemer trust, and cross-script interactions.
+
+### Findings
+
+**Relevant**
+
+- **POND2-305. Near-full and small spends of Ada UTxOs can be troublesome**: Strict equality checks on Ada amounts prevent UTxO creation when change is below minUTxO requirements.<br><ins>Detectable pattern</ins>: exact equality on ADA amounts when inequality would be more appropriate [STRICT-VALUE-EQUALITY]
+
+**May be relevant**
+
+- **POND2-002. Nonce helper validator self-reference**: Validator requires its own script hash as argument, creating circular dependency since arguments affect the compiled hash.<br><ins>Detectable pattern</ins>: validator arguments containing self-referencing script hash/credential
+- **POND2-301. Nonce helper overwrites a valid match if it almost finds another**: Inner loop in nonce helper sets running total to 0 instead of inheriting previous total, resetting counter when subsequent redeemer meets criteria but doesn't use nonce.<br><ins>Detectable pattern</ins>: loop initialization using constant instead of accumulator variable
+- **POND2-306 Quantity is unchecked for LabelOutRef label**: Quantity field ignored when the label type is LabelOutRef, allowing manipulation.<br><ins>Detectable pattern</ins>: No validation on some redeemer's fields.
+- **POND2-307. Unlock module vulnerable to cross-script double satisfaction**: Module expects payment output that could satisfy multiple scripts at the same address with the same value/datum.<br><ins>Detectable pattern</ins>: value aggregation filtering by address without datum uniqueness check [DOUBLE-SATISFACTION]
+
+**Not relevant**
+
+- **POND2-001. Nonce helper script may be bypassed**: Nonce helper uses stake_registration certificate which doesn't require script witness, allowing nonce validation to be skipped. Requires understanding certificate types and their witness requirements
+- **POND2-003. Account helper does not prevent unauthorized drain of funds**: Helper iterates over redeemers matching schema without verifying inputs are from the correct script address. Requires understanding which addresses should be validated
+- **POND2-004. Address-based accounting lets an attacker steal funds**: Helper uses (address, label) as owner unique identifier without checking with datum's owner field. Requires understanding datum field semantics and business logic
+- **POND2-005. All funds can be stolen by pretending to be an owner of any UTxO**: Owner identity is trusted from the redeemer and not checked against staking credentials. Requires understanding protocol's ownership model
+- **POND2-006. Value can be stolen as anyone can sign intent authorization**: Signature verification doesn't check signing key belongs to UTxO's owner. Requires understanding authorization model
+- **POND2-007. Pond native validator skips all validation after an unknown redeemer**: Validator terminates iteration when encountering non-matching redeemer instead of continuing. Logic bug requiring understanding intended iteration behavior
+- **POND2-008 Service fee module stops processing after the first match**: Validator processes first matching input/redeemer pair but returns immediately without continuing iteration through remaining redeemers, allowing fee theft without execution. Logic bug requiring understanding intended iteration behavior
+- **POND2-009. Service fee module observes intents from non-pond scripts**: Intents from arbitrary scripts are trusted, enabling service fees theft without executing anything. Requires understanding which script addresses are valid
+- **POND2-101. Arbitrary label injection when a label is present in the datum**: Validator skips checking datum label equals redeemer label when label is present. Logic bug requiring understanding validation semantics
+- **POND2-102. Attacker can repeatedly DoS intent authorizations and keep Ada**: Intent UTxOs can be burned by anyone, destroying authorization proofs. Requires understanding protocol's authorization model
+- **POND2-103. Modules do not support indirect calls s.a. the and module's**: Modules search only for direct redemptions and don't recognize indirect calls through and module, preventing module argument passing. Protocol design issue about module composition
+- **POND2-201. Signed intents can not be revoked once issued**: Off-chain signatures have no on-chain revocation mechanism, allowing indefinite reuse. Protocol design decision about signature lifecycle
+- **POND2-202. Defragmentation of native token balances unlocks min Ada within**: Defragmenting another party's tokens allows claiming leftover min Ada from merged UTxOs. Protocol economic design issue
+- **POND2-302. Multiple users can not redeem the same intent in one transaction**: Helper uses (label, intent) as uniqueness key without including owner, causing second redemption to be ignored. Requires understanding which fields should constitute unique key
+- **POND2-303. Nonce helper prevents batch unlocks by a single intent**: Nonce helper enforces exactly one redemption can mention it, preventing batch unlocks. Protocol design decision about nonce usage scope
+- **POND2-304. The account functions do not prevent excessive fragmentation**: Module checks amount spent but not how many UTxOs change is split into. Protocol design issue about missing fragmentation constraints
+- **POND2-401. Staking credential registration validation will be required soon**: Scripts rely on withdrawal path without registration checks, but future era will require script witness for registration. Protocol design decision about future-proofing
+- **POND2-402. Documentation imprecise about allowing only 1 intent token mint**: Documentation states single intent token per transaction but validation checks one per output UTxO. Documentation issue
+- **POND2-403. Pond unlock ByOwner contains additional fields**: Redeemer contains unused fields kept for schema consistency across validator variants. Code maintenance issue
+- **POND2-404. Nonce helper can check that it is registered just once**: Registration timing relies on orchestration of valid_until dates instead of explicit time window validation. Code improvement suggestion requiring understanding of timestamp semantics
+- **POND2-405. Typos and incorrect documentation**: Multiple typos and misplaced/imprecise comments throughout the codebase. Documentation and code style issues
+- **POND2-406. Naming and dead code**: Misleading function parameter names and unused function. Code style and naming issues already caught by standard tooling
+- **POND2-407. Code style suggestions**: Multiple code style improvements including using standard library functions, avoiding variable shadowing, and extracting duplicated logic. Code quality and maintainability issues
+- **POND2-408. Suggest documenting negative quantity impact**: Negative quantities discarded silently but not documented. Documentation issue
+- **POND2-409. Intents using nonce could be blocked if nonce value is found**: Anyone registering a nonce credential can block intent execution. Protocol design tradeoff about nonce credential validation
+- **POND2-410. Pond native validator potentially checks all pond versions**: Withdrawal validator validates all inputs with PondRedeemer regardless of pond version, preventing mixed-version transactions. Protocol design decision about version handling
+
+## Pondora v2 (v1.1)
+
+**Auditor**: Invariant0
+
+**Auditee**: Pond Labs
+
+**Description**: Revision of Pondora v2 that focuses on incremental but high-impact changes to the smart-account system: introducing temporary owners, child intents (intent dependency chains), refined unlock-module Ada control, and updated off-chain authorization signing.
+
+### Findings
+
+**Relevant**
+
+- **POND2i-202. Burning of child intent tokens is not controlled enough**: Validator doesn't validate minted quantity or actual burning of child intent tokens, allowing multiple mints with single burn or spending without burning.<br><ins>Detectable pattern</ins>: burn validation without checking mint quantity or restricting minting operations [INCOMPLETE-TOKEN-VALIDATION]
+
+**Not relevant**
+
+- **POND2i-001. Intents can be authorized on behalf of any other user**: Function all_outputs_paid_to_script defaults to True instead of False when intent token owner doesn't match, allowing attacker to replace any user's authorized root hash. Logic bug requiring understanding of validation logic semantics
+- **POND2i-101. Unlock module's start validity timestamp makes it inexecutable**: Validator checks transaction validity interval falls within (valid_until, valid_until) instead of (valid_from, valid_until), making execution practically impossible. Requires understanding intended interval bounds
+- **POND2i-102. Child intent tokens can not be minted as intended**: Function all_outputs_paid_to_script only allows child intent token in UTxO authorizing same child_ref_root hash instead of new child.root_hash, preventing new child intent authorizations from ever being created. Requires understanding protocol's business logic
+- **POND2i-201. Authorized child intent can be used to unauthorize authorizing hash**: Child intent authorization can be abused to revoke its own parent authorization, since it targets authorizing child_ref_root instead of child.root_hash. Requires understanding protocol's business logic
+- **POND2i-301. Temporary owner can authorize intents not bound by his validity**: Temporary owner can create permanent on-chain intent authorizations without validity constraints, allowing execution after authority expires. Protocol design decision about authorization scope
+- **POND2i-401. Code style and documentation**: Naming ambiguity and outdated documentation around generalized auth logic. Code style and documentation issues
