@@ -6,9 +6,9 @@ This document summarizes findings from **9 Plinth audits** in the Cardano ecosys
 
 **Findings Classification:**
 
-- **Relevant findings:** 4
-- **May be relevant findings:** 33
-- **Not relevant findings:** 74
+- **Relevant findings:** 11
+- **May be relevant findings:** 25
+- **Not relevant findings:** 75
 - **Total findings:** 111
 
 ### Common Patterns
@@ -19,11 +19,9 @@ Common issues in Plinth smart contracts include:
 
 2. **Missing Address Validation (4 occurrences) - [MISSING-ADDRESS-VALIDATION]:** Minting policies that validate token properties but fail to verify the destination address where tokens are sent, allowing attackers to redirect minted tokens (including NFTs and authority tokens) to arbitrary addresses instead of intended validators.
 
-3. **Validity Range Bound Issues (3 occurrences) - [VALIDITY-RANGE-BOUND]:** Using wrong bounds (lower vs upper) for timestamp/deadline validation, allowing manipulation of deadlines and interest calculations.
+3. **Double Satisfaction Attacks (1 occurrence) - [DOUBLE-SATISFACTION]:** Validators that aggregate outputs by address without checking datum uniqueness or verifying input uniqueness, allowing attackers to batch multiple operations and satisfy multiple requirements with a single payment or token burn.
 
-4. **Double Satisfaction Attacks (1 occurrence) - [DOUBLE-SATISFACTION]:** Validators that aggregate outputs by address without checking datum uniqueness or verifying input uniqueness, allowing attackers to batch multiple operations and satisfy multiple requirements with a single payment or token burn.
-
-5. **Read-Only Spends (3 occurrences) - [READ-ONLY-SPEND]:** UTxOs spent but recreated identically instead of using reference inputs, causing unnecessary contention and transaction conflicts.
+4. **Read-Only Spends (3 occurrences) - [READ-ONLY-SPEND]:** UTxOs spent but recreated identically instead of using reference inputs, causing unnecessary contention and transaction conflicts.
 
 ## MuesliSwap
 
@@ -147,19 +145,19 @@ Common issues in Plinth smart contracts include:
 **Relevant**
 
 - **2.2.1.1. All assets can be stolen from lending UTxOs:** Minting policy searches for continuing output by datum type without verifying destination address, allowing assets to be redirected to any address with matching datum.<br><ins>Detectable pattern</ins>: output filtered by datum properties without scriptAddress/validatorHash check [MISSING-ADDRESS-VALIDATION]
+- **2.2.2.1. The amount of Ada in the script is too strict:** Validators enforce exact ADA amounts (2 or 4 ADA) in script outputs using equality checks, but Plutus V2 minimum ADA depends on UTxO size.<br><ins>Detectable pattern</ins>: exact equality check on ADA amounts in output validation (potentially outdated Plutus V1 pattern or misunderstanding of minUTxO) [STRICT-VALUE-EQUALITY]
+- **2.2.2.3. Borrower NFT could be referenced when retrieving loan assets:** Transaction spends and recreates UTxO containing borrower NFT to prove ownership instead of using reference input.<br><ins>Detectable pattern</ins>: UTxO spent and recreated without change [READ-ONLY-SPEND]
 
 **May be relevant**
 
-- **2.2.1.2. Loans can be liquidated before their deadline:** Deadline validation uses upper bound of validity range instead of lower bound, allowing lenders to liquidate early by setting upper bound after deadline while lower bound remains before deadline.<br><ins>Detectable pattern</ins>: lower vs upper bound usage for deadline checks, but determining correct bound requires understanding check semantics [VALIDITY-RANGE-BOUND]
-- **2.2.1.3. Lenders can increase the amount of due interests:** When accepting a borrow offer, validation checks loanStartTime equals lower bound of validity range, allowing the lender to set arbitrarily early start date (and matching lower bound) while transaction executes later, inflating interest period.<br><ins>Detectable pattern</ins>: lower vs upper bound usage for timestamp validation, but determining correct bound requires understanding check semantics [VALIDITY-RANGE-BOUND]
-- **2.2.2.1. The amount of Ada in the script is too strict:** Validators enforce exact ADA amounts (2 or 4 ADA) in script outputs using equality checks, but Plutus V2 minimum ADA depends on UTxO size.<br><ins>Detectable pattern</ins>: exact equality check on ADA amounts in output validation (potentially outdated Plutus V1 pattern or misunderstanding of minUTxO)
-- **2.2.2.3. Borrower NFT could be referenced when retrieving loan assets:** Transaction spends and recreates UTxO containing borrower NFT to prove ownership instead of using reference input [READ-ONLY-SPEND]
-- **2.2.2.6. Inputs other than the script ones should be allowed to have datums:** Validator searches for "the only input with any datum" instead of filtering by specific datum type and address, preventing transactions from including other inputs with datums.
+- **2.2.2.6. Inputs other than the script ones should be allowed to have datums:** Validator searches for "the only input with any datum" instead of filtering by specific datum type and address, preventing transactions from including other inputs with datums.<br><ins>Detectable pattern</ins>: Search for datum without enforcing specific type [UNVALIDATED-DATUM]
 - **2.2.4.1. Validation guards are not centralized:** Validation logic scattered across partial utility functions that throw errors internally, rather than centralized guards in the validator with total utility functions returning Maybe/Either.<br><ins>Detectable pattern</ins>: utility functions containing error/traceError/debugError calls, hiding validation logic away from main validator [PARTIAL-UTILITIES]
 
 **Not relevant**
 
-- **2.2.2.2. Redeemers should reflect each distinct action:** Single redeemer type used for multiple actions, with context used to discriminate between them instead of explicit redeemer variants for each action.
+- **2.2.1.2. Loans can be liquidated before their deadline:** Deadline validation uses upper bound of validity range instead of lower bound, allowing lenders to liquidate early by setting upper bound after deadline while lower bound remains before deadline. Requires understanding the usage of validity range
+- **2.2.1.3. Lenders can increase the amount of due interests:** When accepting a borrow offer, validation checks loanStartTime equals lower bound of validity range, allowing the lender to set arbitrarily early start date (and matching lower bound) while transaction executes later, inflating interest period. Requires understanding the usage of validity range
+- **2.2.2.2. Redeemers should reflect each distinct action:** Single redeemer type used for multiple actions, with context used to discriminate between them instead of explicit redeemer variants for each action. Requires understanding the protocol logic
 - **2.2.2.4. Most of the contract logics should appear in the lending script:** Validation logic concentrated in minting policies (least contextual knowledge) rather than spending script validator.
 - **2.2.2.5. Loans using Ada as asset are treated in a convoluted way:** Conditional logic for ADA vs non-ADA assets hidden in helper functions rather than explicit branching in validation logic. Code organization issue requiring semantic judgment about proper abstraction levels
 - **2.2.3.1. The factory NFT still requires offchain verifications:** Factory NFT identified by elimination rather than explicit currency symbol check, allowing protocol to operate with any token, moving trust from on-chain validation to off-chain filtering.
@@ -177,9 +175,12 @@ Common issues in Plinth smart contracts include:
 
 **Description**: Cerra AMM is an automated market maker (AMM) developed by Cerra.io (a decentralized finance -DeFi- platform built on the Cardano network). Its goal is to provide a faster and more efficient cryptocurrency exchange solution within the Cardano ecosystem, leveraging advanced technologies such as Plutus V2 and websockets for real-time synchronization.
 
-**May be relevant**
+**Relevant**
 
 - **2.2.0.2. Checking the batcher token could be done with a reference input:** UTxO containing batcher token spent and recreated to prove ownership instead of using reference input.<br><ins>Detectable pattern</ins>: UTxO spent but recreated with identical datum/value (read-only access), should use reference input instead [READ-ONLY-SPEND]
+
+**May be relevant**
+
 - **2.2.0.5. Usage of map for additional info in PoolDatum is inadapted:** Map with fixed required keys used instead of dedicated datum fields, reducing type safety and allowing misspellings/omissions.<br><ins>Detectable pattern</ins>: Map type with validation checking for specific hardcoded keys, indicating fixed structure better represented as record fields
 - **2.2.0.7. Precision is a static value that takes up space in pool datums:** Datum fields validated to equal hardcoded constant (12), making datums unnecessarily large.<br><ins>Detectable pattern</ins>: datum fields with validation requiring exact match to hardcoded constant (static values bloating datum)
 - **2.2.0.8. Implementation of equality test for PoolDatum is incomplete:** Eq instance for PoolDatum omits pdPrice field from equality check, comparing only subset of fields.<br><ins>Detectable pattern</ins>: custom Eq instance that doesn't compare all data type fields (syntactically identifiable but determining if omission is intentional design vs oversight requires semantic understanding of domain model)
@@ -201,9 +202,9 @@ Common issues in Plinth smart contracts include:
 
 ### Findings
 
-**May be relevant**
+**Relevant**
 
-- **2.2.1.1. Additional tokens of the order token currency symbol can be minted:** Validation checks only the specific token name ("DjedOrderTicket") without restricting other token names under the same currency symbol, allowing arbitrary minting of tokens with different names.<br><ins>Detectable pattern</ins>: token validation filtering by specific token name, but detecting the missing check for other token names requires identifying absence of negative validation (proving no other tokens exist)
+- **2.2.1.1. Additional tokens of the order token currency symbol can be minted:** Validation checks only the specific token name ("DjedOrderTicket") without restricting other token names under the same currency symbol, allowing arbitrary minting of tokens with different names.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 
 **Not relevant**
 
@@ -237,11 +238,15 @@ Common issues in Plinth smart contracts include:
 
 ### Findings
 
-**May be relevant**
+**Relevant**
 
 - **2.3.1.1. uniqNFT can be redirected when posting a bond:** Minting policy doesn't verify minted uniqNFT goes to correct validator address, allowing redirection to arbitrary address.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
 - **2.3.1.4. Pool tokens target is unchecked:** Minting policy doesn't verify where minted pool tokens are sent, allowing redirection to arbitrary addresses or minting without pool creation.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
 - **2.3.1.8. Funds can be locked after datum tampering:** Validator doesn't verify continuing output datum during partial redemption, allowing attackers to modify datum fields and break subsequent operations.<br><ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
+
+**May be relevant**
+
+- **2.3.1.7. Pools can be emptied by matching a bond with the cancel redeemer:** Validator assumes specific redeemer (WriteBond) when consuming BondWriter UTxO but doesn't verify it, allowing use of CancelBond with different validation logic.<br><ins>Detectable pattern</ins>: validation depends on other script inputs without checking WriteBond redeemer, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
 
 **Not relevant**
 
@@ -249,7 +254,6 @@ Common issues in Plinth smart contracts include:
 - **2.3.1.3. Funds can be locked with irrevocable staking rights using unsound bonds:** Margin added to fake bonds (from 2.3.1.2) becomes permanently locked with no redemption possible. Consequence of 2.3.1.1 and 2.3.1.2 (if address validation is fixed in 2.3.1.1, this issue is prevented)
 - **2.3.1.5. Pool target can be compromised using another uniqNFT:** Attacker can substitute bonds by including different bond's uniqNFT in margin, causing pool to match wrong bond. Consequence of uniqNFT redirection from 2.3.1.1 and 2.3.2.1 (if address validation is fixed, this issue is prevented)
 - **2.3.1.6. Pools can be emptied by matching a small bond:** Validator doesn't verify bond tokens equal pool tokens during matching, allowing attacker to match pool to bond with fewer tokens and steal remaining value. Requires understanding protocol invariant that bond and pool token quantities should be equal
-- **2.3.1.7. Pools can be emptied by matching a bond with the cancel redeemer:** Validator assumes specific redeemer (WriteBond) when consuming BondWriter UTxO but doesn't verify it, allowing use of CancelBond with different validation logic. Requires semantic understanding of which redeemer should be used, and redeemer checks may be implicit in pattern matching at higher code levels
 - **2.3.1.9. Bond tokens can be stolen after datum tampering:** Attacker uses datum tampering from 2.3.1.8 to perform complex multi-step attack stealing bond tokens. Consequence of 2.3.1.8 (if datum validation is added, this issue is prevented)
 - **2.3.1.10. Bond tokens can be redeemed with different pool tokens:** Attacker combines stolen pool tokens (2.3.1.4) with datum tampering (2.3.1.8) to redeem bond tokens using wrong pool tokens. Consequence of 2.3.1.4 and 2.3.1.8 (if both issues are fixed, this attack is prevented)
 - **2.3.2.1. uniqNFT can be redirected when cancelling a bond:** BondWriter validator doesn't verify uniqNFT is burned during bond cancellation, allowing redirection to arbitrary address. Requires semantic understanding of protocol lifecycle and which tokens should be burned in which operations
