@@ -6,9 +6,9 @@ This document summarizes findings from **5 Plutarch audits** in the Cardano ecos
 
 **Findings Classification:**
 
-- **Relevant findings:** 11
-- **May be relevant findings:** 12
-- **Not relevant findings:** 79
+- **Relevant findings:** 19
+- **May be relevant findings:** 5
+- **Not relevant findings:** 78
 - **Total findings:** 102
 
 ### Common Patterns
@@ -35,14 +35,18 @@ Common issues in Plutarch smart contracts include:
 
 ### Findings
 
+**Relevant**
+
+- **AGO-104. Attacker can fail any voted-on/locked proposal:** Validator doesn't check transaction validity range length.<br><ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
+- **AGO-105. Stake ST token name not checked:** Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AGO-203. Stakes can be frozen effectively forever by the multisig entity:** Validator doesn't check transaction validity range length.<br><ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
+- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit:** Function validates currency symbol but not token name of stake ST.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AGO-306: Proposal can be DoSed by using UnlockStake with no input stakes:** Proposal voting could be DoSed spending a proposal with the correct redeemer, including no stake inputs.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes:** Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+
 **May be relevant**
 
-- **AGO-105. Stake ST token name not checked:** Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-104. Attacker can fail any voted-on/locked proposal:** Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
-- **AGO-203. Stakes can be frozen effectively forever by the multisig entity:** Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
-- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit:** Function validates currency symbol but not token name of stake ST.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes:** Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
-- **AGO-401. Staking credential is undefined:** Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.<br><ins>Detectable pattern</ins>: script addresses without defined staking credentials
+- **AGO-401. Staking credential is undefined:** Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.<br><ins>Detectable pattern</ins>: script addresses without defined staking credentials [UNVALIDATED-STAKING]
 
 **Not relevant**
 
@@ -62,7 +66,6 @@ Common issues in Plutarch smart contracts include:
 - **AGO-303. tooLate in code can also mean early:** Logic bug where proposal actions before startingTime are incorrectly treated as "too late" instead of "too early", allowing premature proposal finalization
 - **AGO-304. Other minor inconsistencies:** Documentation and code quality issues
 - **AGO-305. Other naming suggestions:** Code quality and documentation issues
-- **AGO-306. Proposal can be DoSed by using UnlockStake with no input stakes:** Redeemer allows operation without validating required stake inputs are present. Requires semantic understanding of which redeemers require which inputs
 - **AGO-308. Proposal can be DoSed by voting and unlocking repeatedly:** Attacker can repeatedly vote and unlock stake to DoS proposal by constantly changing the proposal UTxO, invalidating other users' transactions. Protocol design issue
 - **AGO-309. Incorrect token references across the code:** Variable names and comments incorrectly reference which tokens are used
 - **AGO-402. PUnlock:** Ambiguous proposal redeemer name: Redeemer named PUnlock suggests unlocking proposal but actually unlocks stakes. Naming issue
@@ -118,10 +121,10 @@ Common issues in Plutarch smart contracts include:
 
 ### Findings
 
-**May be relevant**
+**Relevant**
 
 - **LIQV1-001. Retrieving the collateral without repaying allows for draining a market:** Borrow token minting policy doesn't verify the output address where the new borrow token is sent, allowing attacker to redirect collateral to a malicious script instead of the proper loan validator.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
-- **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum:** Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification.<br><ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
+- **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum:** Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification.<br><ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-DATUM]
 
 **Not relevant**
 
