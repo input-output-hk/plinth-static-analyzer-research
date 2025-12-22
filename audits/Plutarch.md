@@ -2,14 +2,14 @@
 
 ## Overview
 
-This document summarizes findings from **4 Plutarch audits** in the Cardano ecosystem.
+This document summarizes findings from **5 Plutarch audits** in the Cardano ecosystem.
 
 **Findings Classification:**
 
-- **Relevant findings:** 5
-- **May be relevant findings:** 8
-- **Not relevant findings:** 68
-- **Total findings:** 81
+- **Relevant findings:** 11
+- **May be relevant findings:** 12
+- **Not relevant findings:** 79
+- **Total findings:** 102
 
 ### Common Patterns
 
@@ -67,6 +67,46 @@ Common issues in Plutarch smart contracts include:
 - **AGO-309. Incorrect token references across the code:** Variable names and comments incorrectly reference which tokens are used
 - **AGO-402. PUnlock:** Ambiguous proposal redeemer name: Redeemer named PUnlock suggests unlocking proposal but actually unlocks stakes. Naming issue
 - **AGO-403. Delegatee cannot vote with delegated and own stakes in one transaction:** Validation requires all stakes to have the same owner or same delegatee, preventing mixed transactions. Protocol design issue
+
+## Splash Protocol Dex
+
+**Auditor**: AnastasiaLabs
+
+**Auditee**: Spectrum Labs
+
+**Description**: Unlike centralized exchanges that match buy and sell orders (aka CLOB exchanges), or constant product Automated Market Maker (AMM) exchanges, Splash uses different types of AMM liquidity pools, the Virtual Limit Order Book (VLOB), and combines them all. This allows different types of market makers to earn interest by providing liquidity as efficiently as they want, and traders to benefit from the best prices by tapping all liquidity in a single order.
+
+### Findings
+
+**Relevant**
+
+- **ID-101. Other token name:** Pool NFT and liquidity token minting policies validate expected token name is minted but don't restrict minting of additional tokens with different names under the same currency symbol.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **ID-106. Duplicates in DAO signers:** DAOPolicy signer list doesn't check for duplicates, allowing some key holders to have amplified voting power and increased risk if compromised.<br><ins>Detectable pattern</ins>: lists of identity/authorization types (PubKeyHash, Address, ValidatorHash, etc.) without uniqueness validation [LIST-UNIQUENESS]
+- **ID-201. Pool creation:** Pool NFT and liquidity token minting policies don't validate destination address or initial pool datum state during minting, relying entirely on off-chain code for correct initialization.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION] [UNVALIDATED-DATUM]
+- **ID-302 Destroy allows hijacking the pool:** Not checking the output datum and value when the pool is spent with the Destroy redeemer.<br><ins>Detectable pattern</ins>: output without datum validation [UNVALIDATED-DATUM]
+- **ID-301. Zero spam:** Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. Requires semantic understanding of whether operations with zero amounts are intentional.<br><ins>Detectable pattern</ins>: operations that don't change state [UNCHANGED-STATE]
+- **ID-401. DAO can change the pool unrestricted:** Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum.<br><ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input [UNVALIDATED-INPUT-INDEX]
+
+**May be relevant**
+
+- **ID-108. Optimize output datum validation:** Validator compares output datum field-by-field instead of constructing expected datum and comparing as whole.<br><ins>Detectable pattern</ins>: multiple individual field comparisons between datums
+- **ID-114. Unnecessary datum re-construction:** Function extracts fields from input datum, reconstructs new datum from those fields, then compares to output datum instead of direct equality check.<br><ins>Detectable pattern</ins>: datum fields extracted and immediately used to reconstruct identical datum structure
+- **ID-202. Fee consistency checks:** Protocol validates individual bounds for feeNum and treasuryFee but doesn't enforce their relationship, allowing feeNum - treasuryFee to become negative and break all swap transactions.<br><ins>Detectable pattern</ins>: subtraction without relational constraint (eg. treasuryFee >= feeNum)
+- **ID-303. Lack of checking of the purpose field of the staking validator:** Staking validator doesn't validate ScriptPurpose field, allowing unintended execution of delegate or deregister actions instead of reward withdrawal, with deregistration invalidating DAO policy checks.<br><ins>Detectable pattern</ins>: staking validator without purpose field validation in script context
+
+**Not relevant**
+
+- **ID-501 DAO can withdraw all user funds:** The minting policy (PFeeSwitch) doesn’t check that the output pool UTxO assets to exchange (treasuryX and treasuryY) are not negative in the validateTreasuryWithdraw function
+- **ID-102 Potential of unsafe order types:** There is no restriction on the types of orders the pool can execute, anyone can implement their own “order” smart contract or interact directly with the pool. An issue may arise for incorrectly implemented order contracts that promise to execute a desired operation, but due to bug/malicious intent, the contract might not execute.
+- **ID-103 Order types may be vulnerable to frontrunning:** There is no restriction on the types of orders the pool can execute, anyone can implement their own “order” smart contract or interact directly with the pool. This makes it possible for executors to front-run user swaps and other operations if the order type does not prevent this
+- **ID-104 Confusing variable naming:** Variables feeNum and feeDen are named misleadingly - feeNum / feeDen represents the portion user receives after fees rather than the fee ratio itself, potentially causing developer confusion. Code clarity/naming issue
+- **ID-105 Setting invalid/empty DAOPolicy:** DAOPolicy field in the datum is used to check the execution of dao actions on the pool. Setting the DAOPolicy value to a wrong value or setting it to an empty list will make accessing the treasury amounts in the pool impossible
+- **ID-107 DAO signers:** The list of accepted signatories cannot be examined by looking at the onchain data and certain operations can change the DAOPolicy. There is no way to check the actual list of a DAOPolicy
+- **ID-109. Treasury fee denominator must equal to fee denominator:** Code assumes feeDen == treasuryFeeDen in calculations but uses two separate constants with same value, risking calculation errors if one changes without the other. Requires semantic understanding that these values must remain equal for calculations to work correctly
+- **ID-111. Unnecessary if in correctLpTokenDelta:** Conditional logic made redundant by subsequent constraints. Requires constraint solving and data flow analysis to detect unreachable branches
+- **ID-110 Redundant rounding:** Redundant call to the rounding function
+- **ID-112 Fee consistency checks:** Upper limit of the swap fees should be modified to a reasonable price
+- **ID-113 Fixed Balance pool weights:** Implementation only supports two-token pools with fixed 20:80 ratio instead of customizable weights. Business logic issue
 
 ## Liqwid v1
 

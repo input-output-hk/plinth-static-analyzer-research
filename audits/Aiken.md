@@ -2,14 +2,14 @@
 
 ## Overview
 
-This document summarizes findings from **24 Aiken audits** in the Cardano ecosystem.
+This document summarizes findings from **23 Aiken audits** in the Cardano ecosystem.
 
 **Findings Classification:**
 
-- **Relevant findings:** 46
-- **May be relevant findings:** 51
-- **Not relevant findings:** 84
-- **Total findings:** 171
+- **Relevant findings:** 57
+- **May be relevant findings:** 55
+- **Not relevant findings:** 148
+- **Total findings:** 260
 
 ### Common Patterns
 
@@ -24,43 +24,6 @@ Common issues in Aiken smart contracts include:
 4. **Unvalidated Datum Fields (6 occurrences) - [UNVALIDATED-DATUM], [PARTIAL-UNVALIDATED-DATUM]:** Validators that create or update outputs without properly validating datum contents, allowing arbitrary or malicious data that can break subsequent operations or enable attacks.
 
 5. **Unvalidated Reference Script Field (4 occurrences) - [UNVALIDATED-REFERENCE-SCRIPT]:** Outputs that don't validate the reference script field, allowing arbitrary reference scripts to be attached, which can significantly increase future transaction fees.
-
-## Splash Protocol Dex
-
-**Auditor**: AnastasiaLabs
-
-**Auditee**: Spectrum Labs
-
-**Description**: Unlike centralized exchanges that match buy and sell orders (aka CLOB exchanges), or constant product Automated Market Maker (AMM) exchanges, Splash uses different types of AMM liquidity pools, the Virtual Limit Order Book (VLOB), and combines them all. This allows different types of market makers to earn interest by providing liquidity as efficiently as they want, and traders to benefit from the best prices by tapping all liquidity in a single order.
-
-### Findings
-
-**May be relevant**
-
-- **ID-401. DAO can change the pool unrestricted:** Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum.<br><ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input
-- **ID-301 Zero spam:** Ensure that a minimal amount is actually transacted to avoid the possibility of endless deposit and redeem the same value. It is recommended to add some minimal fee to the redeem action to make it more expensive (also check for a minimal amount of tokens to be deposited instead of allowing 0). Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
-- **ID-302 Destroy allows hijacking the pool:** Not checking the output datum and value when the pool is spent with the Destroy redeemer.<br><ins>Detectable pattern</ins>: lack of check of the output datum and value. [MISSING-DATUM-VALIDATION]
-- **ID-303. Lack of checking of the purpose field of the staking validator:** Staking validator doesn't validate ScriptPurpose field, allowing unintended execution of delegate or deregister actions instead of reward withdrawal, with deregistration invalidating DAO policy checks.<br><ins>Detectable pattern</ins>: staking validator without purpose field validation in script context
-- **ID-201 Pool creation:** Pool NFT and liquidity token minting policies don't validate destination address or initial pool datum state during minting, relying entirely on off-chain code for correct initialization.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens and checks on the correctness of the datum missing. [MISSING-ADDRESS-VALIDATION]
-- **ID-202. Fee consistency checks:** Protocol validates individual bounds for feeNum and treasuryFee but doesn't enforce their relationship, allowing feeNum - treasuryFee to become negative and break all swap transactions.<br><ins>Detectable pattern</ins>: subtraction without relational constraint (eg. treasuryFee >= feeNum)
-- **ID-101 Other token name:** Pool NFT and pool liquidity minting policies allow minting any number of tokens that are named differently than the configured ones.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **ID-106. Duplicates in DAO signers:** DAOPolicy signer list doesn't check for duplicates, allowing some key holders to have amplified voting power and increased risk if compromised.<br><ins>Detectable pattern</ins>: lists of identity/authorization types (PubKeyHash, Address, ValidatorHash, etc.) without uniqueness validation
-- **ID-108 Optimize output datum validation:** Validation on the continuing datum of the pool is done comparing individual fields of the input datum with the fields of the output datum. Instead, constructing the expected datum and compare it against the actual datum in the continuing pool output would be more efficient.<br><ins>Detectable pattern</ins>: multiple individual field comparisons between datums
-- **ID-109 Treasury fee denominator must be equal to fee denominator:** Two constants with the same value that are used for the same purpose, could lead to misunderstandings in the future.<br><ins>Detectable pattern</ins>: Two constats
-- **ID-111. Unnecessary if in correctLpTokenDelta:**<br><ins>Detectable pattern</ins>: conditional logic made redundant by subsequent constraints. Requires constraint solving and data flow analysis to detect unreachable branches
-- **ID-114 Unnecessary datum re-construction:** Function extracts fields from input datum, reconstructs new datum from those fields, then compares to output datum instead of direct equality check.<br><ins>Detectable pattern</ins>: datum fields extracted and immediately used to reconstruct identical datum structure
-
-**Not relevant**
-
-- **ID-501 DAO can withdraw all user funds:** The minting policy (PFeeSwitch) doesn’t check that the output pool UTxO assets to exchange (treasuryX and treasuryY) are not negative in the validateTreasuryWithdraw function
-- **ID-102 Potential of unsafe order types:** There is no restriction on the types of orders the pool can execute, anyone can implement their own “order” smart contract or interact directly with the pool. An issue may arise for incorrectly implemented order contracts that promise to execute a desired operation, but due to bug/malicious intent, the contract might not execute.
-- **ID-103 Order types may be vulnerable to frontrunning:** There is no restriction on the types of orders the pool can execute, anyone can implement their own “order” smart contract or interact directly with the pool. This makes it possible for executors to front-run user swaps and other operations if the order type does not prevent this
-- **ID-104 Confusing variable naming:** Variables feeNum and feeDen are named misleadingly - feeNum / feeDen represents the portion user receives after fees rather than the fee ratio itself, potentially causing developer confusion. Code clarity/naming issue
-- **ID-105 Setting invalid/empty DAOPolicy:** DAOPolicy field in the datum is used to check the execution of dao actions on the pool. Setting the DAOPolicy value to a wrong value or setting it to an empty list will make accessing the treasury amounts in the pool impossible
-- **ID-107 DAO signers:** The list of accepted signatories cannot be examined by looking at the onchain data and certain operations can change the DAOPolicy. There is no way to check the actual list of a DAOPolicy
-- **ID-110 Redundant rounding:** Redundant call to the rounding function
-- **ID-112 Fee consistency checks:** Upper limit of the swap fees should be modified to a reasonable price
-- **ID-113 Fixed Balance pool weights:** Implementation only supports two-token pools with fixed 20:80 ratio instead of customizable weights. Business logic issue
 
 ## BookToken
 
@@ -863,7 +826,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Auditee**: FluidTokens
 
-**Description**: [No summary provided in original document]
+**Description**: Flexible Cardano lending protocol supporting both peer-to-peer loans and single-lender pools, with static and oracle driven dynamic loans. It introduces advanced features such as partial liquidations, Dutch auctions, perpetual loans, recasting, bond-token–based position ownership, and deep integration with CIP-113 programmable tokens.
 
 ### Findings
 
@@ -1029,7 +992,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Auditee**: FluidTokens
 
-**Description**: [No summary provided in original document]
+**Description**: This project implements a peer-to-peer NFT-collateralized lending protocol on Cardano. Loans can be initiated by either borrowers or lenders, are repaid in installments, and are secured by NFTs. Access control and rights are managed via transferable borrower and lender bond NFTs, which grant the ability to repay, claim repayments, or seize collateral upon default.
 
 ### Findings
 
@@ -1075,3 +1038,32 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **FTA2-404. Incorrect documentation of the loan request's redeemer:** Documentation incorrectly describes lenderAddress field as borrower's bond NFT destination instead of lender's. Documentation issue
 
 - **FTA2-406. Naming and shadowing:** Variable names are unclear, generic, or misleading. Code style and naming issues
+
+## Perpetuals
+
+**Auditor**: [Not provided]
+
+**Auditee**: Strike Finance
+
+**Description**: [No summary provided]
+
+### Findings
+
+**May be relevant**
+
+- **ID-2. Missing Validation and Unbounded Fields in Position Datum:** Position datum fields not validated during minting, allowing unrealistic leverage, prices, or timestamps. Validity range is not restricted, allowing long ranges that distort time-sensitive calculations.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation combined with unrestricted validity range [PARTIAL-UNVALIDATED-DATUM] [VALIDITY-RANGE-BOUND]
+- **ID-7. Missing Validation for position_asset_amount When Opening a Position:** Contract reads position_asset_amount when opening position but doesn't validate value, allowing zero, negative, or unrealistically large values inconsistent with collateral/leverage.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
+- **ID-11. Token Dust Attack on Pool Output:** Validator ensures NFT and underlying asset are present in pool output but doesn't restrict additional tokens, allowing attackers to bloat UTXO with arbitrary tokens causing size limit issues.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+- **ID-13. Missing Token Validation in Output Value:** Validators don't perform explicit validation of output token composition, allowing unexpected tokens to be added or token quantities altered without detection.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+
+**Not relevant**
+
+- **ID-1. Use of Lower Bound for Current Time:** Interest fee calculation uses lower bound of validity range for current_time, allowing manipulation of interest fees. Requires understanding whether lower or upper bound is semantically correct for the specific calculation
+- **ID-3. Lack of Supply Check May Cause Invalid Borrowing or Division by Zero:** Contract assumes underlying assets available in pool without checking, risking division by zero when 100% utilization reached or negative pool state when lended_amount exceeds available supply. Requires understanding business logic
+- **ID-4. Unsafe Asset Comparison Allows Over-Lending:** Asset comparison using match(…, >=) can pass even when pool balance goes negative after borrowing, allowing lending more than available. Requires understanding correct validation approach for asset conservation
+- **ID-5. Misuse of match Function for Multi-Asset Value Comparison:** match(…, >=) checks Lovelace with >= while assuming other assets unchanged, but fails when underlying assets are lent out causing token quantities to decrease. Requires understanding multi-asset value comparison semantics and when asset quantities should change
+- **ID-6. Missing Update to total_lended_amount in Pool Datum:** Contract deducts lended_amount from pool value but doesn't update total_lended_amount datum field, desynchronizing actual balance from accounting metadata. Requires understanding which datum fields must be updated for specific operations
+- **ID-8. Missing Validation of current_usd_price in Close Position Flow:** Protocol uses current_usd_price to calculate repayment without validating price is within reasonable range relative to lent amount and collateral, allowing manipulation of debt repayment. Requires understanding business logic
+- **ID-9. Missing Validation of Lent Amount Returned to Pool in TraderClose:** Protocol calculates send_asset_amount returned to pool but doesn't validate it matches or exceeds original lent amount plus fees, allowing users to return less than borrowed. Requires understanding business logic
+- **ID-10. Incorrect Liquidation Condition Due to Improper Loss Calculation:** Calculation subtracts total_value_loss from collateral_value, but when total_value_loss is negative the subtraction becomes addition, incorrectly increasing collateral value and preventing warranted liquidations. Requires understanding business logic
+- **ID-12. Missing Token Burn in liquidate_position Flow:** Liquidation doesn't burn position token unlike close_position and cancel_position flows, leaving orphaned tokens on-chain. Requires understanding token lifecycle
