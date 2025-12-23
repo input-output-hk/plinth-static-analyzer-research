@@ -6,9 +6,9 @@ This document summarizes findings from **9 Plinth audits** in the Cardano ecosys
 
 **Findings Classification**:
 
-- **Relevant findings**: 16
-- **May be relevant findings**: 18
-- **Not relevant findings**: 77
+- **Relevant findings**: 18
+- **May be relevant findings**: 14
+- **Not relevant findings**: 79
 - **Total findings**: 111
 
 ### Common Patterns
@@ -121,13 +121,14 @@ Common issues in Plinth smart contracts include:
 
 ### Findings
 
+**Relevant**
+
+- **ARD-101. Deposited ADA is not staked**: Vault collateral ADA not staked, users lose potential rewards.<br><ins>Detectable pattern</ins>: missing staking credential in script addresses [UNVALIDATED-STAKING]
+- **ARD-401. Price module contention**: Price module UTxO spent for reads, causing congestion.<br><ins>Detectable pattern</ins>: UTxO spent but recreated with identical datum/value (read-only access), should use reference input instead. [READ-ONLY-SPEND]
+
 **May be relevant**
 
 - **ARD-005. Use of fixed admin keys**: Admin keys hardcoded in script addresses making rotation impossible if compromised.<br><ins>Detectable pattern</ins>: admin credentials in immutable script hash vs mutable datum (maybe from a UTxO of a reference script) [IMMUTABLE-CREDENTIAL]
-- **ARD-101. Deposited ADA is not staked**: Vault collateral ADA not staked, users lose potential rewards.<br><ins>Detectable pattern</ins>: missing staking credential in script addresses [UNVALIDATED-STAKING]
-- **ARD-102. Limited storage of historical stability fees**: Historical fee changes stored in datum map, limited to 20 entries due to datum size constraints. Long-term vaults lose early fee history when >20 changes occur, enabling interest underpayment. A map with size limits is syntactically detectable, but determining this creates an economic exploit requires understanding what the map stores and how it's used in calculations
-- **ARD-201. Timestamp is the lower bound of 12-hour validity windows**: Design uses lower bound of txInfoValidRange for timestamp, allowing users to manipulate timestamp within the 12-hour window for price speculation.<br><ins>Detectable pattern</ins>: lower vs upper bound usage, but assessing exploit might not be so easy [VALIDITY-RANGE-BOUND]
-- **ARD-401. Price module contention**: Price module UTxO spent for reads, causing congestion.<br><ins>Detectable pattern</ins>: UTxO spent but recreated with identical datum/value (read-only access), should use reference input instead. [READ-ONLY-SPEND]
 
 **Not relevant**
 
@@ -135,6 +136,8 @@ Common issues in Plinth smart contracts include:
 - **ARD-002. Liquidation burns too little, duplicating value**: Protocol economic design issue about token supply management, not code pattern
 - **ARD-003. Fixed exchange rate slows down liquidations**: Liquidation uses fixed 1:1 dUSD:USD rate instead of actual market price, making liquidations unprofitable when dUSD > 1 USD and too profitable when dUSD < 1 USD. Protocol economic design, not code pattern
 - **ARD-004. Unclear specification of governance system**: Specification mentions three admin keys hard-wired into the system but doesn't clarify if any single key has full access or if multisig is required. Specification/documentation issue
+- **ARD-102. Limited storage of historical stability fees**: Historical fee changes stored in datum map, limited to 20 entries due to datum size constraints. Long-term vaults lose early fee history when >20 changes occur, enabling interest underpayment. A map with size limits is syntactically detectable, but determining this creates an economic exploit requires understanding what the map stores and how it's used in calculations
+- **ARD-201. Timestamp is the lower bound of 12-hour validity windows**: Design uses lower bound of txInfoValidRange for timestamp, allowing users to manipulate timestamp within the 12-hour window for price speculation. Requires semantic context to know if either lower or upper bound should be used.
 - **ARD-202. Liquidations not batched, slowing process down**: Design disallows batching multiple liquidations in one transaction, potentially slowing liquidation response during market crashes. Design/efficiency issue about missing functionality, not code vulnerability
 - **ARD-203. Unprofitable small liquidations can make dUSD undercollateralized**: Small vaults unprofitable to liquidate (3% discount < tx fees) can accumulate, causing systemic undercollateralization during price crashes. Protocol economics issue about missing minimum size constraints, not code pattern
 - **ARD-301. Unfulfillable acceptance criterion for vault**: Specification claims vaults liquidated within 1 hour of becoming sick, but design requires 2+ hours (hourly price updates + 2 consecutive sick reports needed). Specification inconsistency, not code issue

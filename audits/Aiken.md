@@ -2,14 +2,14 @@
 
 ## Overview
 
-This document summarizes findings from **23 Aiken audits** in the Cardano ecosystem.
+This document summarizes findings from **24 Aiken audits** in the Cardano ecosystem.
 
 **Findings Classification**:
 
-- **Relevant findings:** 64
-- **May be relevant findings:** 48
-- **Not relevant findings:** 148
-- **Total findings:** 260
+- **Relevant findings:** 69
+- **May be relevant findings:** 52
+- **Not relevant findings:** 149
+- **Total findings:** 270
 
 ### Common Patterns
 
@@ -134,7 +134,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **May be relevant**
 
 - **MIN-01 Logical issue in fee settings**: Fee setting functions currently do not safeguard against the possibility of setting both the numerator and denominator of fees to zero.<br><ins>Detectable pattern</ins>: No check on denominator and numerator value being zero.
-- **ORD-02 Missing check on io_ratio_denominator**: Redundancy in the validation check and lack of validation due to typo mistake.<br><ins>Detectable pattern</ins>: duplicate checks.
 
 **Not relevant**
 
@@ -145,7 +144,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **GLOBAL-01 Unit test documentation**: Documentation and code quality issues.
 - **MIN-02 TODO comments**: Code quality issues.
 - **ORD-01 Missing formulas for WithdrawImbalance and PartialSwap**: Code quality issues.
-- **ORD-02 Typos**: Code quality issues.
+- **ORD-02 Missing check on io_ratio_denominator**: Validation checks io_ratio_numerator twice instead of checking both numerator and denominator, leaving denominator unchecked. Copy-paste error already caught by standard tooling
 - **MAT-01 Potential optimization in math.calculate_withdraw_imbalance()**: Code quality issues.
 
 ## MinSwap Dex v2 reaudit
@@ -160,7 +159,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **May be relevant**
 
-- **ORD-02 Unoptimized check**: Using empty strings to verify if assets are ADA. It is recommended to use functions that do the verification.<br><ins>Detectable pattern</ins>: use of empty string to compare an asset name.
+- **ORD-02 Unoptimized check**: Using empty strings to verify if assets are ADA. It is recommended to use functions that do the verification.<br><ins>Detectable pattern</ins>: use of empty string to compare an asset name. Needs confirmation if there is an equivalent `utils.is_ada_asset() ` function in Plinth.
 
 **Not relevant**
 
@@ -208,6 +207,26 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **May be relevant**
 
 - **ID-01. Unvalidated Datum on Creation and Update**: UTxO datum is not checked on creation and update transactions. May require understanding if all datum fields actually need validation.<br><ins>Detectable pattern</ins>: outputs to script addresses without datum validation or with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
+
+## Private Audit #03
+
+### Findings
+
+**Relevant**
+
+- **ID-004. Missing checks in operation**: Multiple missing validations during creation operation: outputs can be created without required validation, identifier fields in datum not validated against token names, token destination not validated, datum fields trusted blindly.<br><ins>Detectable pattern</ins>: output creation with incomplete validation (multiple missing checks for address, datum fields, and token consistency) [MISSING-ADDRESS-VALIDATION] [PARTIAL-UNVALIDATED-DATUM]
+- **ID-201. Prevent inclusion of reference scripts**: UTxOs can carry large reference scripts, inflating future transaction fees.<br><ins>Detectable pattern</ins>: output validation logic that ignores reference script field entirely [UNVALIDATED-REFERENCE-SCRIPT]
+- **ID-202. Continuing output datum and reference scripts can change**: Validation checks output address and value don't change but doesn't validate datum and reference script fields remain unchanged.<br><ins>Detectable pattern</ins>: output validation without datum and reference script field checks [UNVALIDATED-DATUM] [UNVALIDATED-REFERENCE-SCRIPT]
+- **ID-204. Missing checks on minting and updating operations**: Creation operation validates some datum fields but doesn't check list fields for duplicates or validate some fields have reasonable values. Update operation also missing these checks.<br><ins>Detectable pattern</ins>: lists without uniqueness validation and datum fields without bounds validation [LIST-UNIQUENESS] [PARTIAL-UNVALIDATED-DATUM]
+- **ID-206. Arbitrary tokens can be added to values**: Validators check inclusion instead of equality, allowing token dust and UTxO bloat which might increase transaction size and fees.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+
+**May be relevant**
+
+- **ID-001. Protocol tokens can be stolen**: Validator validates input contains required token but doesn't validate token is included in continuing output, allowing token to be leaked.<br><ins>Detectable pattern</ins>: singleton token validated in input but not in continuing output (warning)
+- **ID-003. Consistency of certain fields not validated in operation**: Critical datum fields are not checked for consistency, allowing silent corruption of state.<br><ins>Detectable pattern</ins>: datum field read but not checked [PARTIAL-UNVALIDATED-DATUM]
+- **ID-105. Missing validation in multiple operations**: Multiple fields not validated in continuing outputs, address filtering uses complete address instead of payment credential, value comparisons use >= instead of exact equality.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
+- **ID-302. Optimize expected datum verification**: Datum equality checks cast output data to specific type then compare, could be optimized by casting expected datum to Data and comparing directly.<br><ins>Detectable pattern</ins>: datum equality checks using upcast instead of downcast. Check if there is similar mechanism in Plinth.
+- **ID-203. Multiple tokens can be paid to the same UTxO**: Minting allows multiple tokens in one UTxO, breaking assumptions for subsequent operations.<br><ins>Detectable pattern</ins>: token quantity not validated when minting [INCOMPLETE-TOKEN-VALIDATION]
 
 ## Private Audit #04
 
@@ -1103,4 +1122,3 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **ID-9. Missing Validation of Lent Amount Returned to Pool in TraderClose:** Protocol calculates send_asset_amount returned to pool but doesn't validate it matches or exceeds original lent amount plus fees, allowing users to return less than borrowed. Requires understanding business logic
 - **ID-10. Incorrect Liquidation Condition Due to Improper Loss Calculation:** Calculation subtracts total_value_loss from collateral_value, but when total_value_loss is negative the subtraction becomes addition, incorrectly increasing collateral value and preventing warranted liquidations. Requires understanding business logic
 - **ID-12. Missing Token Burn in liquidate_position Flow:** Liquidation doesn't burn position token unlike close_position and cancel_position flows, leaving orphaned tokens on-chain. Requires understanding token lifecycle
-
