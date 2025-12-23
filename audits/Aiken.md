@@ -4,10 +4,10 @@
 
 This document summarizes findings from **23 Aiken audits** in the Cardano ecosystem.
 
-**Findings Classification:**
+**Findings Classification**:
 
-- **Relevant findings:** 57
-- **May be relevant findings:** 55
+- **Relevant findings:** 64
+- **May be relevant findings:** 48
 - **Not relevant findings:** 148
 - **Total findings:** 260
 
@@ -15,15 +15,52 @@ This document summarizes findings from **23 Aiken audits** in the Cardano ecosys
 
 Common issues in Aiken smart contracts include:
 
-1. **Missing Address Validation (6 occurrences) - [MISSING-ADDRESS-VALIDATION]:** Minting policies and validators that fail to verify the destination address of minted tokens or continuing outputs, allowing attackers to redirect assets to arbitrary addresses.
+1. **Missing Address Validation (6 occurrences) - [MISSING-ADDRESS-VALIDATION]**: Minting policies and validators that fail to verify the destination address of minted tokens or continuing outputs, allowing attackers to redirect assets to arbitrary addresses.
 
-2. **Incomplete Token Validation (5 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]:** Validators that check only some components of token tuples (currency symbol, token name, or quantity) while leaving others unchecked, allowing attackers to mint unauthorized tokens with the same name but different policy or bypass burning requirements.
+2. **Incomplete Token Validation (5 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]**: Validators that check only some components of token tuples (currency symbol, token name, or quantity) while leaving others unchecked, allowing attackers to mint unauthorized tokens with the same name but different policy or bypass burning requirements.
 
-3. **Trash Tokens / Subset Value Validation (6 occurrences) - [TRASH-TOKENS]:** Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens, increasing costs and enabling potential exploits.
+3. **Trash Tokens / Subset Value Validation (6 occurrences) - [TRASH-TOKENS]**: Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens, increasing costs and enabling potential exploits.
 
-4. **Unvalidated Datum Fields (6 occurrences) - [UNVALIDATED-DATUM], [PARTIAL-UNVALIDATED-DATUM]:** Validators that create or update outputs without properly validating datum contents, allowing arbitrary or malicious data that can break subsequent operations or enable attacks.
+4. **Unvalidated Datum Fields (6 occurrences) - [UNVALIDATED-DATUM], [PARTIAL-UNVALIDATED-DATUM]**: Validators that create or update outputs without properly validating datum contents, allowing arbitrary or malicious data that can break subsequent operations or enable attacks.
 
-5. **Unvalidated Reference Script Field (4 occurrences) - [UNVALIDATED-REFERENCE-SCRIPT]:** Outputs that don't validate the reference script field, allowing arbitrary reference scripts to be attached, which can significantly increase future transaction fees.
+5. **Unvalidated Reference Script Field (4 occurrences) - [UNVALIDATED-REFERENCE-SCRIPT]**: Outputs that don't validate the reference script field, allowing arbitrary reference scripts to be attached, which can significantly increase future transaction fees.
+
+## Splash Protocol Dex
+
+**Auditor**: AnastasiaLabs
+
+**Auditee**: Spectrum Labs
+
+**Description**: Unlike centralized exchanges that match buy and sell orders (aka CLOB exchanges), or constant product Automated Market Maker (AMM) exchanges, Splash uses different types of AMM liquidity pools, the Virtual Limit Order Book (VLOB), and combines them all. This allows different types of market makers to earn interest by providing liquidity as efficiently as they want, and traders to benefit from the best prices by tapping all liquidity in a single order.
+
+### Findings
+
+**May be relevant**
+
+- **ID-401. DAO can change the pool unrestricted**: Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum.<br><ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input
+- **ID-301 Zero spam**: Ensure that a minimal amount is actually transacted to avoid the possibility of endless deposit and redeem the same value. It is recommended to add some minimal fee to the redeem action to make it more expensive (also check for a minimal amount of tokens to be deposited instead of allowing 0). Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
+- **ID-302 Destroy allows hijacking the pool**: Not checking the output datum and value when the pool is spent with the Destroy redeemer.<br><ins>Detectable pattern</ins>: lack of check of the output datum and value. [MISSING-DATUM-VALIDATION]
+- **ID-303. Lack of checking of the purpose field of the staking validator**: Staking validator doesn't validate ScriptPurpose field, allowing unintended execution of delegate or deregister actions instead of reward withdrawal, with deregistration invalidating DAO policy checks.<br><ins>Detectable pattern</ins>: staking validator without purpose field validation in script context
+- **ID-201 Pool creation**: Pool NFT and liquidity token minting policies don't validate destination address or initial pool datum state during minting, relying entirely on off-chain code for correct initialization.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens and checks on the correctness of the datum missing. [MISSING-ADDRESS-VALIDATION]
+- **ID-202. Fee consistency checks**: Protocol validates individual bounds for feeNum and treasuryFee but doesn't enforce their relationship, allowing feeNum - treasuryFee to become negative and break all swap transactions.<br><ins>Detectable pattern</ins>: subtraction without relational constraint (eg. treasuryFee >= feeNum)
+- **ID-101 Other token name**: Pool NFT and pool liquidity minting policies allow minting any number of tokens that are named differently than the configured ones.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **ID-106. Duplicates in DAO signers**: DAOPolicy signer list doesn't check for duplicates, allowing some key holders to have amplified voting power and increased risk if compromised.<br><ins>Detectable pattern</ins>: lists of identity/authorization types (PubKeyHash, Address, ValidatorHash, etc.) without uniqueness validation
+- **ID-108 Optimize output datum validation**: Validation on the continuing datum of the pool is done comparing individual fields of the input datum with the fields of the output datum. Instead, constructing the expected datum and compare it against the actual datum in the continuing pool output would be more efficient.<br><ins>Detectable pattern</ins>: multiple individual field comparisons between datums
+- **ID-109 Treasury fee denominator must be equal to fee denominator**: Two constants with the same value that are used for the same purpose, could lead to misunderstandings in the future.<br><ins>Detectable pattern</ins>: Two constats
+- **ID-111. Unnecessary if in correctLpTokenDelta**:<br><ins>Detectable pattern</ins>: conditional logic made redundant by subsequent constraints. Requires constraint solving and data flow analysis to detect unreachable branches
+- **ID-114 Unnecessary datum re-construction**: Function extracts fields from input datum, reconstructs new datum from those fields, then compares to output datum instead of direct equality check.<br><ins>Detectable pattern</ins>: datum fields extracted and immediately used to reconstruct identical datum structure
+
+**Not relevant**
+
+- **ID-501 DAO can withdraw all user funds**: The minting policy (PFeeSwitch) doesn’t check that the output pool UTxO assets to exchange (treasuryX and treasuryY) are not negative in the validateTreasuryWithdraw function
+- **ID-102 Potential of unsafe order types**: There is no restriction on the types of orders the pool can execute, anyone can implement their own “order” smart contract or interact directly with the pool. An issue may arise for incorrectly implemented order contracts that promise to execute a desired operation, but due to bug/malicious intent, the contract might not execute.
+- **ID-103 Order types may be vulnerable to frontrunning**: There is no restriction on the types of orders the pool can execute, anyone can implement their own “order” smart contract or interact directly with the pool. This makes it possible for executors to front-run user swaps and other operations if the order type does not prevent this
+- **ID-104 Confusing variable naming**: Variables feeNum and feeDen are named misleadingly - feeNum / feeDen represents the portion user receives after fees rather than the fee ratio itself, potentially causing developer confusion. Code clarity/naming issue
+- **ID-105 Setting invalid/empty DAOPolicy**: DAOPolicy field in the datum is used to check the execution of dao actions on the pool. Setting the DAOPolicy value to a wrong value or setting it to an empty list will make accessing the treasury amounts in the pool impossible
+- **ID-107 DAO signers**: The list of accepted signatories cannot be examined by looking at the onchain data and certain operations can change the DAOPolicy. There is no way to check the actual list of a DAOPolicy
+- **ID-110 Redundant rounding**: Redundant call to the rounding function
+- **ID-112 Fee consistency checks**: Upper limit of the swap fees should be modified to a reasonable price
+- **ID-113 Fixed Balance pool weights**: Implementation only supports two-token pools with fixed 20:80 ratio instead of customizable weights. Business logic issue
 
 ## BookToken
 
@@ -38,19 +75,19 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **May be relevant**
 
-- **2.2.4.3. Some helper functions impact compiled script size:** Helper functions are trivial wrappers that could be inlined.<br><ins>Detectable pattern</ins>: functions that only pattern match or call another function with fixed arguments
+- **2.2.4.3. Some helper functions impact compiled script size**: Helper functions are trivial wrappers that could be inlined.<br><ins>Detectable pattern</ins>: functions that only pattern match or call another function with fixed arguments. Should check if there is some Plinth tool that covers this issue or not
 
 **Not relevant**
 
-- **2.2.1.1. The reference token is not an NFT:** Reference token is burned and reminted on updates instead of using one-shot NFT, adding transaction costs and relying on admin to avoid multiple tokens. Requires semantic understanding of intended token lifecycle
-- **2.2.1.2. Obsolete tokens are not burned:** Obsolete tokens sent to script address instead of being burned via minting policy. Requires semantic understanding of intended token lifecycle and destination script purpose
-- **2.2.1.3. Custom failure scripts have no upside over the canonical failure script:** Parametrized scripts used instead of canonical failure script for locking obsolete tokens. Requires semantic understanding of script purpose and whether parametrization provides value
-- **2.2.2.1. New tokens can be stolen by abusing an undesired rounding-up operation:** Integer division with negative dividend rounds toward negative infinity, causing amounts to round up in absolute value. Requires semantic understanding of correct rounding direction for the business logic
-- **2.2.3.1. Unlock transaction is underspecified:** Validator logic for unlock transactions not explicitly documented. Documentation issue
-- **2.2.3.2. Swap transaction is underspecified:** Validator logic for swap transactions not explicitly documented. Documentation issue
-- **2.2.4.1. Conditionals could be avoided using short-circuiting in boolean conjunctions:** Suggests rewriting conditionals using boolean conjunction for readability. Code style issue already caught by standard tooling
-- **2.2.4.2. Unnecessary named intermediates:** Excessive use of intermediate variables may reduce code clarity. Code style issue
-- **2.2.4.4. Comments are lacking in the code:** Source code would benefit from more description comments. Documentation issue
+- **2.2.1.1. The reference token is not an NFT**: Reference token is burned and reminted on updates instead of using one-shot NFT, adding transaction costs and relying on admin to avoid multiple tokens. Requires semantic understanding of intended token lifecycle
+- **2.2.1.2. Obsolete tokens are not burned**: Obsolete tokens sent to script address instead of being burned via minting policy. Requires semantic understanding of intended token lifecycle and destination script purpose
+- **2.2.1.3. Custom failure scripts have no upside over the canonical failure script**: Parametrized scripts used instead of canonical failure script for locking obsolete tokens. Requires semantic understanding of script purpose and whether parametrization provides value
+- **2.2.2.1. New tokens can be stolen by abusing an undesired rounding-up operation**: Integer division with negative dividend rounds toward negative infinity, causing amounts to round up in absolute value. Requires semantic understanding of correct rounding direction for the business logic
+- **2.2.3.1. Unlock transaction is underspecified**: Validator logic for unlock transactions not explicitly documented. Documentation issue
+- **2.2.3.2. Swap transaction is underspecified**: Validator logic for swap transactions not explicitly documented. Documentation issue
+- **2.2.4.1. Conditionals could be avoided using short-circuiting in boolean conjunctions**: Suggests rewriting conditionals using boolean conjunction for readability. Code style issue already caught by standard tooling
+- **2.2.4.2. Unnecessary named intermediates**: Excessive use of intermediate variables may reduce code clarity. Code style issue
+- **2.2.4.4. Comments are lacking in the code**: Source code would benefit from more description comments. Documentation issue
 
 ## MinSwap Dex
 
@@ -62,24 +99,27 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ### Findings
 
+**Relevant**
+
+- **2.2.1.3. Unauthorized Hijacking of Pools Funds**: Validator selects continuing output by NFT presence without verifying destination address, allowing pool funds to be redirected to attacker's script.<br><ins>Detectable pattern</ins>: continuing output selected by token presence without address validation [MISSING-ADDRESS-VALIDATION]
+
 **May be relevant**
 
-- **2.2.1.1. Unauthorized Redeeming of Open Orders:** Validator checks for presence of other script inputs without verifying their redeemers, allowing authorization bypass.<br><ins>Detectable pattern</ins>: validation depends on other script inputs without checking txInfoRedeemers, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
-- **2.2.1.2. LP Tokens Can Be Duplicated:** Minting policy checks for pool output with NFT but doesn't verify which redeemer was used on pool input, allowing unauthorized minting.<br><ins>Detectable pattern</ins>: minting policy depends on other script inputs/outputs without checking txInfoRedeemers, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
-- **2.2.1.3. Unauthorized Hijacking of Pools Funds:** Validator selects continuing output by NFT presence without verifying destination address, allowing pool funds to be redirected to attacker's script.<br><ins>Detectable pattern</ins>: continuing output selected by token presence without address validation (should use getContinuingOutputs or verify scriptAddress) [MISSING-ADDRESS-VALIDATION]
-- **2.2.4.3. Large Refactoring Opportunities:** Heavy code duplication across order validation functions could be refactored for better maintainability
+- **2.2.1.1. Unauthorized Redeeming of Open Orders**: Validator checks for presence of other script inputs without verifying their redeemers, allowing authorization bypass.<br><ins>Detectable pattern</ins>: validation depends on other script inputs without checking txInfoRedeemers, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
+- **2.2.1.2. LP Tokens Can Be Duplicated**: Minting policy checks for pool output with NFT but doesn't verify which redeemer was used on pool input, allowing unauthorized minting.<br><ins>Detectable pattern</ins>: minting policy depends on other script inputs/outputs without checking txInfoRedeemers, though determining whether specific redeemers are required for validation requires semantic understanding [UNCHECKED-REDEEMER]
 
 **Not relevant**
 
-- **2.2.2.1. Batchers Can Choose Batching Order:** On-chain code doesn't enforce chronological order processing. Requires semantic understanding of whether order matters for protocol fairness
-- **2.2.2.2. Batcher Is Not Allowed to Apply Their Own Orders:** Code filters out orders from specific addresses when processing. Requires semantic understanding of whether address-based filtering is intentional or erroneous
-- **2.2.3.1. Batchers Can Choose Pools:** Batchers can execute orders against any pool, including custom pools. Requires semantic understanding of intended protocol constraints
-- **2.2.3.2. Batchers Licenses Cannot be Revoked:** Batcher licenses are irrevocable until expiration. Protocol governance issue
-- **2.2.3.3. Assumptions on Batcher's Licenses Distribution:** Specification doesn't document how batcher licenses are distributed and renewed. Documentation issue
-- **2.2.3.4. Pools Cannot Be Closed:** Pools can be created but not closed, permanently locking creator's minAda. Requires semantic understanding of intended pool lifecycle
-- **2.2.4.1. Reliance on Indexes Into ScriptContexts' txInputs and txOutputs:** Validators use redeemer-provided indices to select inputs, relying on transaction ordering. Requires semantic understanding of whether input ordering constraints are necessary
-- **2.2.4.2. Duplication of ScriptContext Definition:** Custom ScriptContext definition omits getContinuingOutputs function, contributing to vulnerability 2.2.1.3. Code organization and maintenance issue
-- **2.2.4.4. Protocol Specification Lacking:** Documentation lacks formal specification defining correct behavior and operations
+- **2.2.2.1. Batchers Can Choose Batching Order**: On-chain code doesn't enforce chronological order processing. Requires semantic understanding of whether order matters for protocol fairness
+- **2.2.2.2. Batcher Is Not Allowed to Apply Their Own Orders**: Code filters out orders from specific addresses when processing. Requires semantic understanding of whether address-based filtering is intentional or erroneous
+- **2.2.3.1. Batchers Can Choose Pools**: Batchers can execute orders against any pool, including custom pools. Requires semantic understanding of intended protocol constraints
+- **2.2.3.2. Batchers Licenses Cannot be Revoked**: Batcher licenses are irrevocable until expiration. Protocol governance issue
+- **2.2.3.3. Assumptions on Batcher's Licenses Distribution**: Specification doesn't document how batcher licenses are distributed and renewed. Documentation issue
+- **2.2.3.4. Pools Cannot Be Closed**: Pools can be created but not closed, permanently locking creator's minAda. Requires semantic understanding of intended pool lifecycle
+- **2.2.4.1. Reliance on Indexes Into ScriptContexts' txInputs and txOutputs**: Validators use redeemer-provided indices to select inputs, relying on transaction ordering. Requires semantic understanding of whether input ordering constraints are necessary
+- **2.2.4.2. Duplication of ScriptContext Definition**: Custom ScriptContext definition omits getContinuingOutputs function, contributing to vulnerability 2.2.1.3. Code organization and maintenance issue
+- **2.2.4.3. Large Refactoring Opportunities**: Heavy code duplication across order validation functions could be refactored for better maintainability
+- **2.2.4.4. Protocol Specification Lacking**: Documentation lacks formal specification defining correct behavior and operations
 
 ## Minswap AMM Dex v2
 
@@ -93,20 +133,20 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **May be relevant**
 
-- **MIN-01 Logical issue in fee settings:** Fee setting functions currently do not safeguard against the possibility of setting both the numerator and denominator of fees to zero.<br><ins>Detectable pattern</ins>: No check on denominator and numerator value being zero.
-- **ORD-02 Missing check on io_ratio_denominator:** Redundancy in the validation check and lack of validation due to typo mistake.<br><ins>Detectable pattern</ins>: duplicate checks.
+- **MIN-01 Logical issue in fee settings**: Fee setting functions currently do not safeguard against the possibility of setting both the numerator and denominator of fees to zero.<br><ins>Detectable pattern</ins>: No check on denominator and numerator value being zero.
+- **ORD-02 Missing check on io_ratio_denominator**: Redundancy in the validation check and lack of validation due to typo mistake.<br><ins>Detectable pattern</ins>: duplicate checks.
 
 **Not relevant**
 
-- **FAC-01 Creation of pools with invalid parameters:** Needs checks to ensure that reserve values and total liquidity fall within practical ranges. Requires understanding business logic to determine which are practical ranges.
-- **VAL-01 Centralization related risks:** Centralized privileges or roles in the protocol could be improved via decentralized mechanisms
-- **FAC-02 Pool creation allows complete asset withdrawal:** Should allow for the replenishment of pool liquidity. Requires understanding business logic.
-- **AUT-01 Incorrect comment:** Code quality issue.
-- **GLOBAL-01 Unit test documentation:** Documentation and code quality issues.
-- **MIN-02 TODO comments:** Code quality issues.
-- **ORD-01 Missing formulas for WithdrawImbalance and PartialSwap:** Code quality issues.
-- **ORD-02 Typos:** Code quality issues.
-- **MAT-01 Potential optimization in math.calculate_withdraw_imbalance():** Code quality issues.
+- **FAC-01 Creation of pools with invalid parameters**: Needs checks to ensure that reserve values and total liquidity fall within practical ranges. Requires understanding business logic to determine which are practical ranges.
+- **VAL-01 Centralization related risks**: Centralized privileges or roles in the protocol could be improved via decentralized mechanisms
+- **FAC-02 Pool creation allows complete asset withdrawal**: Should allow for the replenishment of pool liquidity. Requires understanding business logic.
+- **AUT-01 Incorrect comment**: Code quality issue.
+- **GLOBAL-01 Unit test documentation**: Documentation and code quality issues.
+- **MIN-02 TODO comments**: Code quality issues.
+- **ORD-01 Missing formulas for WithdrawImbalance and PartialSwap**: Code quality issues.
+- **ORD-02 Typos**: Code quality issues.
+- **MAT-01 Potential optimization in math.calculate_withdraw_imbalance()**: Code quality issues.
 
 ## MinSwap Dex v2 reaudit
 
@@ -120,13 +160,13 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **May be relevant**
 
-- **ORD-02 Unoptimized check:** Using empty strings to verify if assets are ADA. It is recommended to use functions that do the verification.<br><ins>Detectable pattern</ins>: use of empty string to compare an asset name.
+- **ORD-02 Unoptimized check**: Using empty strings to verify if assets are ADA. It is recommended to use functions that do the verification.<br><ins>Detectable pattern</ins>: use of empty string to compare an asset name.
 
 **Not relevant**
 
-- **TYP-01 Potential for multiple roles per address:** There are no constraints to prevent a single address from being assigned multiple or even all roles.
+- **TYP-01 Potential for multiple roles per address**: There are no constraints to prevent a single address from being assigned multiple or even all roles.
 - **MIN-01 Centralization related risks**
-- **ORD-01 Missing check for batcher fee in donation orders:** Uncertainty about whether the batcher fee is correctly paid in all scenarios. Requires understanging of the business logic.
+- **ORD-01 Missing check for batcher fee in donation orders**: Uncertainty about whether the batcher fee is correctly paid in all scenarios. Requires understanging of the business logic.
 
 ## Nuvola
 
@@ -138,24 +178,28 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ### Findings
 
+**Relevant**:
+
+- **NUV-001. Reward Token can be stolen on Process Reward operation**: Validator uses subset value check on user output (not script address) allowing authorization token to escape burning and be reused.<br><ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
+- **NUV-002. Rewards Claim UTxOs can be deleted without owner consent and fees stolen**: Minting policy validates token presence in outputs without checking mint amount, allowing burning to consume UTxOs without authorization.<br><ins>Detectable pattern</ins>: minting validation without checking token quantity sign [INCOMPLETE-TOKEN-VALIDATION]
+- **NUV-003. Stake Tokens can be arbitrarily minted during the payback loan operation**: The payback loan validator for lender UTxO doesn’t restrict extra stake tokens, so arbitrary stake tokens can be minted and stored.<br><ins>Detectable pattern</ins>: minting without quantity validation and subset value validation [INCOMPLETE-TOKEN-VALIDATION] [TRASH-TOKENS]
+- **NUV-201 Reward Claim UTxOs can be created with no or more than one token**: ClaimReward creation does not enforce that exactly one reward token is present. <br><ins>Detectable pattern</ins>: validation without exact equality check on values. [INCOMPLETE-TOKEN-VALIDATION]
+- **NUV-204. Prevent inclusion of reference scripts**: Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+- **NUV-303. Claim reward tokens can be minted with arbitrary token name**: Minting policy validates expected token name but doesn't restrict minting other token names under the same currency symbol.<br><ins>Detectable pattern</ins>: token name validation without restricting other names [INCOMPLETE-TOKEN-VALIDATION]
+
 **May be relevant**
 
-- **NUV-001. Reward Token can be stolen on Process Reward operation:** Validator uses subset value check on user output (not script address) allowing authorization token to escape burning and be reused.<br><ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
-- **NUV-002. Rewards Claim UTxOs can be deleted without owner consent and fees stolen:** Minting policy validates token presence in outputs without checking mint amount is positive vs negative, allowing burning to consume UTxOs without authorization.<br><ins>Detectable pattern</ins>: minting validation without checking token quantity sign [INCOMPLETE-TOKEN-VALIDATION]
-- **NUV-003. Stake Tokens can be arbitrarily minted during the payback loan operation:** Minting policy validates operation type without restricting quantity, combined with subset value check on outputs allowing tokens to go anywhere.<br><ins>Detectable pattern</ins>: minting without quantity validation and subset value validation [INCOMPLETE-TOKEN-VALIDATION] [TRASH-TOKENS]
-- **NUV-102. Genesis stake ref can be forged on LoanDatum:** Datum field copied from input to output without validation that values match, allowing arbitrary data. Requires understanding which datum fields must be preserved across operations [UNVALIDATED-CONTINUING-DATUM]
-- **NUV-204. Prevent inclusion of reference scripts:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
-- **NUV-301. CreateLend spend redeemer can be used to remove a lend UTxO:** Wildcard pattern matching on redeemer allows unintended redeemer types to trigger logic.<br><ins>Detectable pattern</ins>: wildcard pattern matching on redeemer types
-- **NUV-303. Claim reward tokens can be minted with arbitrary token name:** Minting policy validates expected token name but doesn't restrict minting other token names under the same currency symbol.<br><ins>Detectable pattern</ins>: token name validation without restricting other names [INCOMPLETE-TOKEN-VALIDATION]
-- **NUV-305. Trash tokens can be added to multiple UTxOs:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.<br><ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
+- **NUV-202. Missing checks for some LendingDatum fields**: Datum fields not validated during creation, allowing unreasonable values.<br><ins>Detectable pattern</ins>: outputs with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
+- **NUV-301. CreateLend spend redeemer can be used to remove a lend UTxO**: Wildcard pattern matching on redeemer allows unintended redeemer types to trigger logic.<br><ins>Detectable pattern</ins>: wildcard pattern matching on redeemer types
+- **NUV-305. Trash tokens can be added to multiple UTxOs**: Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.<br><ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
 
 **Not relevant**
 
-- **NUV-101. It is possible to create loans that have expired:** Validation uses inequality check instead of equality for expiration date, allowing past dates. Requires understanding business logic to determine correct comparison operator
-- **NUV-202. Missing checks for some LendingDatum fields:** Datum fields not validated during creation, allowing unreasonable values. Requires understanding which fields need validation
-- **NUV-203. Staking credentials not being checked in two operations:** Script UTxO creation doesn't validate staking credential matches user's expected credential. Requires understanding protocol design and user expectations
-- **NUV-302. Spendable loan UTxO without a loan token:** Spend validation requires token burning, making UTxOs without tokens permanently unspendable. Requires understanding business logic
-- **NUV-304. Optimization for the Apply Loan operation:** Multiple opportunities to reduce computation costs through better data handling and removing redundant checks. Requires understanding performance implications and protocol-specific code structure
+- **NUV-101. It is possible to create loans that have expired**: Validation uses inequality check instead of equality for expiration date, allowing past dates. Requires understanding business logic to determine correct comparison operator
+- **NUV-102. Genesis stake ref can be forged on LoanDatum**: Datum field copied from input to output without validation that values match, allowing arbitrary data. Requires understanding intended use of datum and which datum fields must be preserved across operations
+- **NUV-203. Staking credentials not being checked in two operations**: Script UTxO creation doesn't validate staking credential matches user's expected credential. Requires understanding protocol design and user expectations
+- **NUV-302. Spendable loan UTxO without a loan token**: Spend validation requires token burning, making UTxOs without tokens permanently unspendable. Requires understanding business logic
+- **NUV-304. Optimization for the Apply Loan operation**: Multiple opportunities to reduce computation costs through better data handling and removing redundant checks. Requires understanding performance implications and protocol-specific code structure
 
 ## Private Audit #02
 
@@ -163,19 +207,15 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **May be relevant**
 
-- **ID-01. Unvalidated Datum on Creation and Update:** UTxO datum is not checked on creation and update transactions. May require understanding if all datum fields actually need validation.<br><ins>Detectable pattern</ins>: outputs to script addresses without datum validation or with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
+- **ID-01. Unvalidated Datum on Creation and Update**: UTxO datum is not checked on creation and update transactions. May require understanding if all datum fields actually need validation.<br><ins>Detectable pattern</ins>: outputs to script addresses without datum validation or with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
 
 ## Private Audit #04
-
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
 
 ### Findings
 
 **May be relevant**
 
-- **ID-01. Sub-optimal cost for transactions:** Validator repeatedly searches input list for own script hash when processing multiple items.
+- **ID-01. Sub-optimal cost for transactions**: Validator repeatedly searches input list for own script hash when processing multiple items.
   <ins>Detectable pattern</ins>: loop-invariant own-script-hash lookup repeated multiple times instead of caching result
 
 ## Private Audit #05
@@ -184,9 +224,9 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Output value not validated:** Protocol operations don't validate output values, allowing arbitrary tokens to be added.
+- **ID-01. Output value not validated**: Protocol operations don't validate output values, allowing arbitrary tokens to be added.
   <ins>Detectable pattern</ins>: output value validation without token restriction checks [TRASH-TOKENS]
-- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script fields in outputs, allowing arbitrary reference scripts to be attached and increasing future transaction fees.
+- **ID-02. Unvalidated Reference Script Field**: Validator doesn't validate reference script fields in outputs, allowing arbitrary reference scripts to be attached and increasing future transaction fees.
   <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 
 ## Private Audit #06
@@ -195,16 +235,16 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Multiple tokens can be minted:** Minting policy validates token presence without enforcing exactly one token is minted, allowing extra tokens to be created.
+- **ID-01. Multiple tokens can be minted**: Minting policy validates token presence without enforcing exactly one token is minted, allowing extra tokens to be created.
   <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
+- **ID-02. Unvalidated Reference Script Field**: Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
   <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
-- **ID-03. Trash Tokens Allowed:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.
+- **ID-03. Trash Tokens Allowed**: Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.
   <ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
 
 **May be relevant**
 
-- **ID-04. Missing datum field validation:** Protocol outputs may store incorrect data in datum fields, making them unprocessable since certain fields have no validation.
+- **ID-04. Missing datum field validation**: Protocol outputs may store incorrect data in datum fields, making them unprocessable since certain fields have no validation.
   <ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 
 ## Private Audit #07
@@ -213,9 +253,9 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Incomplete Token Validation:** Validator checks token currency symbol without verifying token name, allowing wrong tokens from same policy to be used.
+- **ID-01. Incomplete Token Validation**: Validator checks token currency symbol without verifying token name, allowing wrong tokens from same policy to be used.
   <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **ID-02. Arbitrary Token Minting:** Minting policy allows minting whenever an authorization token appears in any input, even when coming from a script instead of authorized wallet. Combined with protocol threading allows arbitrary token minting.
+- **ID-02. Arbitrary Token Minting**: Minting policy allows minting whenever an authorization token appears in any input, even when coming from a script instead of authorized wallet. Combined with protocol threading allows arbitrary token minting.
   <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 
 ## Private Audit #08
@@ -224,21 +264,21 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Missing Datum Validation:** Validator creates output at script address without validating datum, potentially creating unspendable UTxO.
+- **ID-01. Missing Datum Validation**: Validator creates output at script address without validating datum, potentially creating unspendable UTxO.
   <ins>Detectable pattern</ins>: output creation without datum validation [UNVALIDATED-DATUM]
-- **ID-02. Missing Address and Datum Validation:** Validator creates output without validating address or datum, allowing tokens to be misdirected or creating unspendable outputs.
+- **ID-02. Missing Address and Datum Validation**: Validator creates output without validating address or datum, allowing tokens to be misdirected or creating unspendable outputs.
   <ins>Detectable pattern</ins>: output creation without address and datum validation [MISSING-ADDRESS-VALIDATION] [UNVALIDATED-DATUM]
-- **ID-03. Unbounded Validity Range Exploitation:** Validator uses transaction's validity bound for calculations without restricting validity range length, allowing artificially inflated values and exploitation.
+- **ID-03. Unbounded Validity Range Exploitation**: Validator uses transaction's validity bound for calculations without restricting validity range length, allowing artificially inflated values and exploitation.
   <ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
-- **ID-04. Operations Allow Invalid Initial State:** Protocol allows creating outputs with arbitrarily low start time without restricting validity interval length, enabling exploitation through accumulated values.
+- **ID-04. Operations Allow Invalid Initial State**: Protocol allows creating outputs with arbitrarily low start time without restricting validity interval length, enabling exploitation through accumulated values.
   <ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
-- **ID-05. Token Quantity Not Validated:** Validator checks token presence without validating quantity > 0, allowing zero-quantity tokens to satisfy checks.
+- **ID-05. Token Quantity Not Validated**: Validator checks token presence without validating quantity > 0, allowing zero-quantity tokens to satisfy checks.
   <ins>Detectable pattern</ins>: token presence check without quantity validation [INCOMPLETE-TOKEN-VALIDATION]
-- **ID-06. Protocol Outputs Can Include Trash Tokens:** Output creation lacks validation allowing arbitrary tokens that can be merged into valid UTxOs.
+- **ID-06. Protocol Outputs Can Include Trash Tokens**: Output creation lacks validation allowing arbitrary tokens that can be merged into valid UTxOs.
   <ins>Detectable pattern</ins>: output value validation without token restriction checks [TRASH-TOKENS]
-- **ID-07. Output Contains Wrong Tokens:** Protocol operation does not validate output value.
+- **ID-07. Output Contains Wrong Tokens**: Protocol operation does not validate output value.
   <ins>Detectable pattern</ins>: output value validation without token restriction checks [TRASH-TOKENS]
-- **ID-08. Identifier Token Name Not Validated:** Validator does not validate the token name of the minted identifier token.
+- **ID-08. Identifier Token Name Not Validated**: Validator does not validate the token name of the minted identifier token.
   <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 
 ## Private Audit #09
@@ -247,16 +287,16 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Incomplete Value Validation:** Validator checked only that the UTxO contained some non-zero value, but not what that value consisted of. An attacker could insert a useless dummy token to satisfy the validator, while providing less than the protocol-required minimum ADA.
+- **ID-01. Incomplete Value Validation**: Validator checked only that the UTxO contained some non-zero value, but not what that value consisted of. An attacker could insert a useless dummy token to satisfy the validator, while providing less than the protocol-required minimum ADA.
   <ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **ID-02. Unvalidated Destination Address:** Minting policy doesn't validate that minted tokens are sent to the correct validator address.
+- **ID-02. Unvalidated Destination Address**: Minting policy doesn't validate that minted tokens are sent to the correct validator address.
   <ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
-- **ID-03. Trash Tokens on Update:** When updating a script UTxO, the validator allows extra native tokens to be added accidentally. This could permanently lock the UTxO and force redeployment.
+- **ID-03. Trash Tokens on Update**: When updating a script UTxO, the validator allows extra native tokens to be added accidentally. This could permanently lock the UTxO and force redeployment.
   <ins>Detectable pattern</ins>: subset value validation instead of equality check on continuing outputs [TRASH-TOKENS]
 
 **May be relevant**
 
-- **ID-04. Multiple Satisfaction Issue:** Validator filters inputs by token presence without validating count of matching UTxOs.
+- **ID-04. Multiple Satisfaction Issue**: Validator filters inputs by token presence without validating count of matching UTxOs.
   <ins>Detectable pattern</ins>: absence of quantity validation after filtering for specific tokens could be flagged as warning [DOUBLE-SATISFACTION]
 
 ## Private Audit #10
@@ -265,14 +305,14 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Exact Value Equality on Updates:** Pool value check uses exact value equality preventing ADA addition when datum size increases.
+- **ID-01. Exact Value Equality on Updates**: Pool value check uses exact value equality preventing ADA addition when datum size increases.
   <ins>Detectable pattern</ins>: exact equality on continuing output values without accounting for variable minUTxO requirements [STRICT-VALUE-EQUALITY]
-- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
+- **ID-02. Unvalidated Reference Script Field**: Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
   <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 
 **May be relevant**
 
-- **ID-03. Datum Fields Not Checked at Creation:** There are no checks on certain datum fields when creating outputs. As a result, it is possible to create outputs that do not satisfy protocol invariants.
+- **ID-03. Datum Fields Not Checked at Creation**: There are no checks on certain datum fields when creating outputs. As a result, it is possible to create outputs that do not satisfy protocol invariants.
   <ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 
 ## Private Audit #11
@@ -281,9 +321,9 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Unvalidated Output Datum:** Validator doesn't validate datum field of outputs to script addresses, allowing datum hashes which require preimages to spend.<br><ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
-- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
-- **ID-03. Trash Tokens Allowed:** Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+- **ID-01. Unvalidated Output Datum**: Validator doesn't validate datum field of outputs to script addresses, allowing datum hashes which require preimages to spend.<br><ins>Detectable pattern</ins>: outputs to script addresses without datum validation [UNVALIDATED-DATUM]
+- **ID-02. Unvalidated Reference Script Field**: Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+- **ID-03. Trash Tokens Allowed**: Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 
 ## Private Audit #12
 
@@ -291,22 +331,18 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Exact Value Equality on Updates:** Pool value check uses exact value equality preventing ADA addition when datum size increases.
+- **ID-01. Exact Value Equality on Updates**: Pool value check uses exact value equality preventing ADA addition when datum size increases.
   <ins>Detectable pattern</ins>: exact equality on continuing output values without accounting for variable minUTxO requirements [STRICT-VALUE-EQUALITY]
-- **ID-02. Unvalidated Reference Script Field:** Validator doesn't validate reference script field in script outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
+- **ID-02. Unvalidated Reference Script Field**: Validator doesn't validate reference script field in script outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
   <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 
 ## Private Audit #13
-
-**Auditor**: [No description provided]
-
-**Description**: [No summary provided]
 
 ### Findings
 
 **Relevant**
 
-- **ID-01. Unvalidated Reference Script Field:** Validator doesn't validate reference script field in outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
+- **ID-01. Unvalidated Reference Script Field**: Validator doesn't validate reference script field in outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.
   <ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 
 ## Private Audit #14
@@ -315,7 +351,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **ID-01. Unvalidated Reference Script Field:** Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+- **ID-01. Unvalidated Reference Script Field**: Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 
 ## Splash Protocol Stableswap (Splash Dex - draft)
 
@@ -765,7 +801,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 - **POND2-002. Nonce helper validator self-reference**: Validator requires its own script hash as argument, creating circular dependency since arguments affect the compiled hash.<br><ins>Detectable pattern</ins>: validator arguments containing self-referencing script hash/credential
 - **POND2-301. Nonce helper overwrites a valid match if it almost finds another**: Inner loop in nonce helper sets running total to 0 instead of inheriting previous total, resetting counter when subsequent redeemer meets criteria but doesn't use nonce.<br><ins>Detectable pattern</ins>: loop initialization using constant instead of accumulator variable
-- **POND2-306 Quantity is unchecked for LabelOutRef label**: Quantity field ignored when the label type is LabelOutRef, allowing manipulation.<br><ins>Detectable pattern</ins>: No validation on some redeemer's fields.
+- **POND2-306 Quantity is unchecked for LabelOutRef label**: Quantity field ignored when the label type is LabelOutRef, allowing manipulation.<br><ins>Detectable pattern</ins>: No validation on some redeemer's fields. [UNCHECKED-REDEEMER]
 - **POND2-307. Unlock module vulnerable to cross-script double satisfaction**: Module expects payment output that could satisfy multiple scripts at the same address with the same value/datum.<br><ins>Detectable pattern</ins>: value aggregation filtering by address without datum uniqueness check [DOUBLE-SATISFACTION]
 
 **Not relevant**
@@ -832,159 +868,159 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **FTL3-002. Lender pool funds can be stolen:** Validator doesn't verify continuing pool output address, allowing borrower to redirect remaining pool funds to controlled address instead of recreating pool at correct script address.
+- **FTL3-002. Lender pool funds can be stolen**: Validator doesn't verify continuing pool output address, allowing borrower to redirect remaining pool funds to controlled address instead of recreating pool at correct script address.
   <ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
 
-- **FTL3-006. Blocking funds and gaining unfair advantage by adding a programmable token:** Malicious programmable tokens can be injected to block liquidations, repayments, or pools.
+- **FTL3-006. Blocking funds and gaining unfair advantage by adding a programmable token**: Malicious programmable tokens can be injected to block liquidations, repayments, or pools.
   <ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 
-- **FTL3-205. Too small Ada equity makes liquidation impossible:** Validator requires exact equity amount in borrower output instead of minimum amount, preventing UTxO creation when computed equity is below minUTxO requirements.
+- **FTL3-205. Too small Ada equity makes liquidation impossible**: Validator requires exact equity amount in borrower output instead of minimum amount, preventing UTxO creation when computed equity is below minUTxO requirements.
   <ins>Detectable pattern</ins>: exact equality on ADA amounts when inequality would be more appropriate [STRICT-VALUE-EQUALITY]
 
-- **FTL3-206. It might be impossible to add collateral to a non-specific asset collateral loan:** Validator uses strict Ada equality preventing increases, but adding collateral tokens increases UTxO size requiring higher minAda.
+- **FTL3-206. It might be impossible to add collateral to a non-specific asset collateral loan**: Validator uses strict Ada equality preventing increases, but adding collateral tokens increases UTxO size requiring higher minAda.
   <ins>Detectable pattern</ins>: exact equality on ADA amounts when inequality would be more appropriate [STRICT-VALUE-EQUALITY]
 
-- **FTL3-302. Oracle's valid_from is unchecked:** Validator checks oracle validity range length and transaction validity against valid_to, but doesn't validate valid_from, allowing malformed ranges to pass validation.
+- **FTL3-302. Oracle's valid_from is unchecked**: Validator checks oracle validity range length and transaction validity against valid_to, but doesn't validate valid_from, allowing malformed ranges to pass validation.
   <ins>Detectable pattern</ins>: temporal validation checking only one bound of validity range without validating the other bound [VALIDITY-RANGE-BOUND]
 
 **May be relevant**
 
-- **FTL3-001. Repayments can not be withdrawn:** Repayment tokens must be burned to withdraw funds, but the minting policy forbids burning, making repayments permanently locked.
+- **FTL3-001. Repayments can not be withdrawn**: Repayment tokens must be burned to withdraw funds, but the minting policy forbids burning, making repayments permanently locked.
   <ins>Detectable pattern</ins>: No burning logic on the validator [NO-BURNING-LOGIC]
 
-- **FTL3-003. Collateral can not be withdrawn:** Loan tokens required to unlock collateral cannot be burned due to minting policy restrictions.
+- **FTL3-003. Collateral can not be withdrawn**: Loan tokens required to unlock collateral cannot be burned due to minting policy restrictions.
   <ins>Detectable pattern</ins>: No burning logic on the validator [NO-BURNING-LOGIC]
 
-- **FTL3-005. Lender can claim the whole collateral in an auction by malicious address:** Auction creation doesn't validate owner address format in datum, allowing lender to set invalid-length credentials or pointer credentials that break payment validation.
+- **FTL3-005. Lender can claim the whole collateral in an auction by malicious address**: Auction creation doesn't validate owner address format in datum, allowing lender to set invalid-length credentials or pointer credentials that break payment validation.
   <ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 
-- **FTL3-030. Datums can not be parsed:** Code uses builtin.un_list_data on datums with constructor types, causing parsing to always fail and making protocol unfeasible. Aiken-specific issue; requires verification if equivalent issue exists in Haskell/Plinth.
+- **FTL3-030. Datums can not be parsed**: Code uses builtin.un_list_data on datums with constructor types, causing parsing to always fail and making protocol unfeasible. Aiken-specific issue; requires verification if equivalent issue exists in Haskell/Plinth.
 
-- **FTL3-102. Ada in expired requests is vulnerable to double satisfaction:** Multiple expired requests can reference the same borrower compensation output via redeemer-provided index, allowing single payment to satisfy multiple requests and stealing excess Ada.
+- **FTL3-102. Ada in expired requests is vulnerable to double satisfaction**: Multiple expired requests can reference the same borrower compensation output via redeemer-provided index, allowing single payment to satisfy multiple requests and stealing excess Ada.
   <ins>Detectable pattern</ins>: redeemer-provided output index without uniqueness validation [DOUBLE-SATISFACTION]
 
-- **FTL3-104. Cross-script double satisfaction:** Validators check party receives payment without preventing other script inputs, allowing single payment to satisfy multiple validators expecting payment to the same party.
+- **FTL3-104. Cross-script double satisfaction**: Validators check party receives payment without preventing other script inputs, allowing single payment to satisfy multiple validators expecting payment to the same party.
   <ins>Detectable pattern</ins>: value aggregation filtering by address without script input uniqueness check [DOUBLE-SATISFACTION]
 
-- **FTL3-029. Bond addresses trusted without bond presence verification:** Reference inputs used without checking NFT presence allow value redirection.
+- **FTL3-029. Bond addresses trusted without bond presence verification**: Reference inputs used without checking NFT presence allow value redirection.
   <ins>Detectable pattern</ins>: Usage of reference inputs without identifying NFT verification
 
-- **FTL3-208. User stake credentials to authorize programmable token transfers:** Using staking credentials for ownership complicates transaction construction and signing.
+- **FTL3-208. User stake credentials to authorize programmable token transfers**: Using staking credentials for ownership complicates transaction construction and signing.
   <ins>Detectable pattern</ins>: Usage of staking credential instead of payment credential for spend authorization
 
 **Not relevant**
 
-- **FTL3-004. Lender can claim the whole collateral in a dutch auction before start:** Cancel mechanism allows the lender to cancel the auction before the start date without collateral validation, enabling theft of collateral which typically exceeds debt value. Requires understanding protocol's business logic
+- **FTL3-004. Lender can claim the whole collateral in a dutch auction before start**: Cancel mechanism allows the lender to cancel the auction before the start date without collateral validation, enabling theft of collateral which typically exceeds debt value. Requires understanding protocol's business logic
 
-- **FTL3-007. Ada collateral is not protected in requests:** Validator checks collateral preservation but explicitly skips Ada validation, allowing the lender to claim the entire Ada collateral while only providing principal to the borrower. Requires understanding which assets should be validated as collateral
+- **FTL3-007. Ada collateral is not protected in requests**: Validator checks collateral preservation but explicitly skips Ada validation, allowing the lender to claim the entire Ada collateral while only providing principal to the borrower. Requires understanding which assets should be validated as collateral
 
-- **FTL3-008. Lender can disable repaying and liquidate:** Function hash_output_ref errors on transaction indices > 255, allowing lender to create loan at index 256+ by adding dummy outputs, making loan unrepayable and forcing liquidation. Requires understanding function semantics
+- **FTL3-008. Lender can disable repaying and liquidate**: Function hash_output_ref errors on transaction indices > 255, allowing lender to create loan at index 256+ by adding dummy outputs, making loan unrepayable and forcing liquidation. Requires understanding function semantics
 
-- **FTL3-009. Loan token can not be minted for programmable token loans:** Minting policy searches for inputs using wrong staking credential (loan validator instead of request/pool validator), preventing token minting for programmable token requests/pools. Requires understanding multi-validator coordination
+- **FTL3-009. Loan token can not be minted for programmable token loans**: Minting policy searches for inputs using wrong staking credential (loan validator instead of request/pool validator), preventing token minting for programmable token requests/pools. Requires understanding multi-validator coordination
 
-- **FTL3-010. Repayment token can not be minted for programmable token loans:** Minting policy searches for loan inputs using wrong staking credential (repayment validator instead of loan validator), preventing repayment token minting and making repayment impossible. Requires understanding multi-validator coordination
+- **FTL3-010. Repayment token can not be minted for programmable token loans**: Minting policy searches for loan inputs using wrong staking credential (repayment validator instead of loan validator), preventing repayment token minting and making repayment impossible. Requires understanding multi-validator coordination
 
-- **FTL3-011. Protocol is unfeasible due to usage of get_outputs_to_smart_credential:** Function searches for outputs using incorrect staking credentials in multiple operations, making protocol unfeasible when programmable tokens are involved. Requires understanding multi-validator coordination
+- **FTL3-011. Protocol is unfeasible due to usage of get_outputs_to_smart_credential**: Function searches for outputs using incorrect staking credentials in multiple operations, making protocol unfeasible when programmable tokens are involved. Requires understanding multi-validator coordination
 
-- **FTL3-012. Dutch auction's borrower compensation goes to the lender:** Function parameter receives wrong variable, causing excess auction proceeds to be sent to lender instead of borrower. Logic bug requiring understanding of variable semantics and parameter passing
+- **FTL3-012. Dutch auction's borrower compensation goes to the lender**: Function parameter receives wrong variable, causing excess auction proceeds to be sent to lender instead of borrower. Logic bug requiring understanding of variable semantics and parameter passing
 
-- **FTL3-013. AMM formulas are incorrect:** Oracle type using constant-product AMM formulas has incorrect mathematical calculations for price estimation including fees and slippage. Requires understanding AMM mathematics and correct formula derivation
+- **FTL3-013. AMM formulas are incorrect**: Oracle type using constant-product AMM formulas has incorrect mathematical calculations for price estimation including fees and slippage. Requires understanding AMM mathematics and correct formula derivation
 
-- **FTL3-014. Wrong arguments in conversion from Ada to token:** Function receives swapped token A/B arguments (lovelace supplied as token A when it should be token B according to oracle type), causing invalid conversion calculations. Logic bug requiring understanding of function parameter semantics and oracle data structure
+- **FTL3-014. Wrong arguments in conversion from Ada to token**: Function receives swapped token A/B arguments (lovelace supplied as token A when it should be token B according to oracle type), causing invalid conversion calculations. Logic bug requiring understanding of function parameter semantics and oracle data structure
 
-- **FTL3-015. Healthy loans can be liquidated:** Function uses inverted comparison logic, allowing liquidation only for healthy loans. Logic bug requiring understanding the business logic
+- **FTL3-015. Healthy loans can be liquidated**: Function uses inverted comparison logic, allowing liquidation only for healthy loans. Logic bug requiring understanding the business logic
 
-- **FTL3-016. Amortization formula is wrong:** Amortization calculation uses incorrect formula with exponent applied to entire numerator instead of just (1 + i) term, causing massive overpayment. Requires understanding correct mathematical formula
+- **FTL3-016. Amortization formula is wrong**: Amortization calculation uses incorrect formula with exponent applied to entire numerator instead of just (1 + i) term, causing massive overpayment. Requires understanding correct mathematical formula
 
-- **FTL3-017. Recasting does not work well with the amortization formula:** Recast logic subtracts recast amount from initial principal without accounting for already-repaid principal portions or updating remaining term, causing incorrect installment calculations. Requires understanding the protocol's business logic
+- **FTL3-017. Recasting does not work well with the amortization formula**: Recast logic subtracts recast amount from initial principal without accounting for already-repaid principal portions or updating remaining term, causing incorrect installment calculations. Requires understanding the protocol's business logic
 
-- **FTL3-018. Recasting on due loan installments avoids interest and penalties:** Recast allowed without validating due installments are repaid first, enabling borrowers to avoid interest by recasting instead of making scheduled payments. Requires understanding protocol's business logic
+- **FTL3-018. Recasting on due loan installments avoids interest and penalties**: Recast allowed without validating due installments are repaid first, enabling borrowers to avoid interest by recasting instead of making scheduled payments. Requires understanding protocol's business logic
 
-- **FTL3-019. Inconsistent perpetual loan interest computation:** Two functions use different interest rate calculations, causing mismatched interest values. Logic bug requiring understanding of intended interest calculation semantics
+- **FTL3-019. Inconsistent perpetual loan interest computation**: Two functions use different interest rate calculations, causing mismatched interest values. Logic bug requiring understanding of intended interest calculation semantics
 
-- **FTL3-020. Remaining debt on perpetual loans does not assume previous payments:** Function calculates total debt from initial lend date without accounting for already-paid interest installments, causing double-charging of interest. Requires understanding protocol's business logic
+- **FTL3-020. Remaining debt on perpetual loans does not assume previous payments**: Function calculates total debt from initial lend date without accounting for already-paid interest installments, causing double-charging of interest. Requires understanding protocol's business logic
 
-- **FTL3-021. Dutch auction payments can break due to checking bond addresses:** Payment validation uses bond holder addresses but fails with certain staking credential types, allows adding unspendable programmable tokens, and may not handle programmable credential addresses correctly. Requires understanding multi-validator coordination
+- **FTL3-021. Dutch auction payments can break due to checking bond addresses**: Payment validation uses bond holder addresses but fails with certain staking credential types, allows adding unspendable programmable tokens, and may not handle programmable credential addresses correctly. Requires understanding multi-validator coordination
 
-- **FTL3-022. Perpetual loan recasting logic is incorrect:** Recasting reduces principal without ensuring accrued interest is paid first, causing interest on original principal to be lost in debt calculation. Requires understanding protocol's business logic
+- **FTL3-022. Perpetual loan recasting logic is incorrect**: Recasting reduces principal without ensuring accrued interest is paid first, causing interest on original principal to be lost in debt calculation. Requires understanding protocol's business logic
 
-- **FTL3-023. Loan inputs with programmable assets bypass action validator checks:** Action validators search for loan inputs using wrong credential parameter, causing loans with programmable collateral to be missed and spendable without validation. Requires understanding multi-validator coordination
+- **FTL3-023. Loan inputs with programmable assets bypass action validator checks**: Action validators search for loan inputs using wrong credential parameter, causing loans with programmable collateral to be missed and spendable without validation. Requires understanding multi-validator coordination
 
-- **FTL3-024. Wrong action credential allows borrowers to unlock programmable collateral:** Action validators search for continuing loan outputs using wrong credential parameter, allowing borrowers to redirect outputs to addresses they control and bypass validation. Requires understanding multi-validator coordination
+- **FTL3-024. Wrong action credential allows borrowers to unlock programmable collateral**: Action validators search for continuing loan outputs using wrong credential parameter, allowing borrowers to redirect outputs to addresses they control and bypass validation. Requires understanding multi-validator coordination
 
-- **FTL3-025. Wrong receipt condition allows blocking funds with programmable assets:** Condition logic returns True when receipt is not required regardless of receipt token presence, allowing arbitrary tokens to be added. Requires understanding business logic to determine if conditional logic is redundant
+- **FTL3-025. Wrong receipt condition allows blocking funds with programmable assets**: Condition logic returns True when receipt is not required regardless of receipt token presence, allowing arbitrary tokens to be added. Requires understanding business logic to determine if conditional logic is redundant
 
-- **FTL3-026. Programmable collateral sent to uncontrollable auction credential is lost:** Function forces programmable assets to use spend credential as stake credential, but auction script can't control programmable token transfers, causing permanent fund loss. Requires understanding multi-validator coordination
+- **FTL3-026. Programmable collateral sent to uncontrollable auction credential is lost**: Function forces programmable assets to use spend credential as stake credential, but auction script can't control programmable token transfers, causing permanent fund loss. Requires understanding multi-validator coordination
 
-- **FTL3-027. Zero liquidation penalty incorrectly skips equity return to borrower:** Condition changed from < 0 to <= 0 withholds equity when penalty is zero, even though borrower should receive positive equity. Logic bug requiring understanding business logic
+- **FTL3-027. Zero liquidation penalty incorrectly skips equity return to borrower**: Condition changed from < 0 to <= 0 withholds equity when penalty is zero, even though borrower should receive positive equity. Logic bug requiring understanding business logic
 
-- **FTL3-028. Malicious parties can block transactions by holding bonds without stake credentials:** Validators expect inline stake credentials on bond addresses, allowing DoS attacks by using addresses without inline credentials. Requires understanding protocol's authorization model and acceptable address types
+- **FTL3-028. Malicious parties can block transactions by holding bonds without stake credentials**: Validators expect inline stake credentials on bond addresses, allowing DoS attacks by using addresses without inline credentials. Requires understanding protocol's authorization model and acceptable address types
 
-- **FTL3-031. Wrong config index extracts incorrect loan policy id:** Validators use wrong index (2 instead of 6) to extract loan policy id from config, retrieving pool policy id instead and preventing loan input discovery for programmable tokens. Logic bug requiring understanding of data structure indexing
+- **FTL3-031. Wrong config index extracts incorrect loan policy id**: Validators use wrong index (2 instead of 6) to extract loan policy id from config, retrieving pool policy id instead and preventing loan input discovery for programmable tokens. Logic bug requiring understanding of data structure indexing
 
-- **FTL3-032. LTV is calculated based on the initial principal:** Function calculates LTV using only initial principal versus collateral value without accounting for accumulated interest or repaid principal, causing incorrect liquidation eligibility. Requires understanding protocol's business logic
+- **FTL3-032. LTV is calculated based on the initial principal**: Function calculates LTV using only initial principal versus collateral value without accounting for accumulated interest or repaid principal, causing incorrect liquidation eligibility. Requires understanding protocol's business logic
 
-- **FTL3-033. Repayment increments wrong field causing eventual collateral loss:** Function increments wrong datum field due to outdated positional index after field reordering, making loans appear unpaid. Logic bug requiring understanding of data structure field positions
+- **FTL3-033. Repayment increments wrong field causing eventual collateral loss**: Function increments wrong datum field due to outdated positional index after field reordering, making loans appear unpaid. Logic bug requiring understanding of data structure field positions
 
-- **FTL3-101. DEX oracle computation uses hardcoded fees:** Oracle uses hardcoded 0.3% fee for constant product formula, preventing use with different fee structures or non-constant product pools. Protocol design decision about parameter flexibility
+- **FTL3-101. DEX oracle computation uses hardcoded fees**: Oracle uses hardcoded 0.3% fee for constant product formula, preventing use with different fee structures or non-constant product pools. Protocol design decision about parameter flexibility
 
-- **FTL3-103. Too big a loan can liquidate the borrower:** Validator doesn't enforce maximum loan amount, allowing the lender to lend an excessive amount that pushes LTV over liquidation threshold immediately. Requires understanding protocol's business logic
+- **FTL3-103. Too big a loan can liquidate the borrower**: Validator doesn't enforce maximum loan amount, allowing the lender to lend an excessive amount that pushes LTV over liquidation threshold immediately. Requires understanding protocol's business logic
 
-- **FTL3-105. Permissioned conditions not enforced for programmable tokens:** Permission validators search for inputs using wrong staking credentials, preventing permission checks for programmable token UTxOs. Requires understanding multi-validator coordination
+- **FTL3-105. Permissioned conditions not enforced for programmable tokens**: Permission validators search for inputs using wrong staking credentials, preventing permission checks for programmable token UTxOs. Requires understanding multi-validator coordination
 
-- **FTL3-106. Time unit change error disables recasts:** Function divides milliseconds by hours after installmentPeriod unit change from milliseconds to hours, causing incorrect due installment calculation and disabling recasts. Logic bug requiring understanding of time unit semantics
+- **FTL3-106. Time unit change error disables recasts**: Function divides milliseconds by hours after installmentPeriod unit change from milliseconds to hours, causing incorrect due installment calculation and disabling recasts. Logic bug requiring understanding of time unit semantics
 
-- **FTL3-201. Minting multiple repayment tokens is nearly unfeasible:** Policy compares lexicographically sorted minted tokens against unsorted expected tokens derived from hash ordering, making multi-token minting unfeasible when hash order differs from lexicographic order. Requires understanding list ordering semantics
+- **FTL3-201. Minting multiple repayment tokens is nearly unfeasible**: Policy compares lexicographically sorted minted tokens against unsorted expected tokens derived from hash ordering, making multi-token minting unfeasible when hash order differs from lexicographic order. Requires understanding list ordering semantics
 
-- **FTL3-202. Request can not be cancelled after expiration by a different party:** Validation expects burned request token to be in borrower compensation output, making cancellation unfeasible. Logic bug requiring understanding token lifecycle
+- **FTL3-202. Request can not be cancelled after expiration by a different party**: Validation expects burned request token to be in borrower compensation output, making cancellation unfeasible. Logic bug requiring understanding token lifecycle
 
-- **FTL3-203. It is possible to lend to an expired request:** Validator doesn't check request expiration date, allowing lending to expired requests that should only be cancellable. Requires understanding protocol's business logic
+- **FTL3-203. It is possible to lend to an expired request**: Validator doesn't check request expiration date, allowing lending to expired requests that should only be cancellable. Requires understanding protocol's business logic
 
-- **FTL3-204. Pool might be blocked until recreated:** Attacker can borrow from pool and recreate it at index > 255, blocking further borrows due to hash_output_ref function limitations. Requires understanding function semantics
+- **FTL3-204. Pool might be blocked until recreated**: Attacker can borrow from pool and recreate it at index > 255, blocking further borrows due to hash_output_ref function limitations. Requires understanding function semantics
 
-- **FTL3-207. No liquidation discount:** Partial liquidation returns exact equity to the borrower without discount, leaving the lender unable to cover exchange fees and price volatility. Protocol economic design issue
+- **FTL3-207. No liquidation discount**: Partial liquidation returns exact equity to the borrower without discount, leaving the lender unable to cover exchange fees and price volatility. Protocol economic design issue
 
-- **FTL3-301. Permissioned lending party is chosen by an index out of context:** Index used to select signing party from whitelist represents input position order rather than being an independent parameter, making multi-party transactions difficult to construct. Requires understanding index semantics and redeemer structure
+- **FTL3-301. Permissioned lending party is chosen by an index out of context**: Index used to select signing party from whitelist represents input position order rather than being an independent parameter, making multi-party transactions difficult to construct. Requires understanding index semantics and redeemer structure
 
-- **FTL3-303. Dutch auction can be bought before it starts:** Validator doesn't check if a transaction occurs after auction start date, allowing purchases before start at proportionally higher price. Requires understanding protocol's business logic
+- **FTL3-303. Dutch auction can be bought before it starts**: Validator doesn't check if a transaction occurs after auction start date, allowing purchases before start at proportionally higher price. Requires understanding protocol's business logic
 
-- **FTL3-304. Indexing repayments in repayment minting policy is troublesome:** Policy uses loan input indices to validate repayment outputs but doesn't skip indices for loans not creating repayments, requiring dummy outputs. Requires understanding protocol's business logic
+- **FTL3-304. Indexing repayments in repayment minting policy is troublesome**: Policy uses loan input indices to validate repayment outputs but doesn't skip indices for loans not creating repayments, requiring dummy outputs. Requires understanding protocol's business logic
 
-- **FTL3-305. Burning and minting request and pool tokens is inconvenient:** Policy iterates over sorted mint records including burns but uses index to locate outputs, requiring dummy outputs when burns are interspersed with mints. Requires understanding protocol's business logic
+- **FTL3-305. Burning and minting request and pool tokens is inconvenient**: Policy iterates over sorted mint records including burns but uses index to locate outputs, requiring dummy outputs when burns are interspersed with mints. Requires understanding protocol's business logic
 
-- **FTL3-306. The principalLTV variable is overused:** Single variable holds different semantics, creating confusion. Code clarity and naming issue
+- **FTL3-306. The principalLTV variable is overused**: Single variable holds different semantics, creating confusion. Code clarity and naming issue
 
-- **FTL3-307. Ada oracle use is inconsistent:** Protocol handles Ada oracle differently for principal versus collateral, creating inconsistency. Code organization and consistency issue
+- **FTL3-307. Ada oracle use is inconsistent**: Protocol handles Ada oracle differently for principal versus collateral, creating inconsistency. Code organization and consistency issue
 
-- **FTL3-308. AMM formulas are based on a rational number that is then rounded:** Functions truncate rational numbers without considering whether lower or upper bound is needed. Requires understanding correct rounding direction for business logic
+- **FTL3-308. AMM formulas are based on a rational number that is then rounded**: Functions truncate rational numbers without considering whether lower or upper bound is needed. Requires understanding correct rounding direction for business logic
 
-- **FTL3-309. Oracle safe-guards suggestion:** Oracle feeds may be unsuitable for all loan sizes, requiring size-based feed restrictions. Protocol design decision about oracle usage constraints
+- **FTL3-309. Oracle safe-guards suggestion**: Oracle feeds may be unsuitable for all loan sizes, requiring size-based feed restrictions. Protocol design decision about oracle usage constraints
 
-- **FTL3-310. Equity computation charges conversion fees to the lender:** Equity calculation for partial liquidation uses a conversion method that charges fees to the lender instead of borrower, preventing lender from recovering full remaining debt. Requires understanding protocol's business logic
+- **FTL3-310. Equity computation charges conversion fees to the lender**: Equity calculation for partial liquidation uses a conversion method that charges fees to the lender instead of borrower, preventing lender from recovering full remaining debt. Requires understanding protocol's business logic
 
-- **FTL3-311. Pool KYC token signature can be reused to borrow more:** Signature includes borrow amount but isn't bound to specific instance, allowing reuse across multiple transactions to borrow more than signed amount. Protocol design decision
+- **FTL3-311. Pool KYC token signature can be reused to borrow more**: Signature includes borrow amount but isn't bound to specific instance, allowing reuse across multiple transactions to borrow more than signed amount. Protocol design decision
 
-- **FTL3-312. Unlimited recasts do not work:** Documentation claims negative max_possible_recasts enables unlimited recasts, but validation uses simple < comparison that fails for negative values. Documentation issue
+- **FTL3-312. Unlimited recasts do not work**: Documentation claims negative max_possible_recasts enables unlimited recasts, but validation uses simple < comparison that fails for negative values. Documentation issue
 
-- **FTL3-313. Borrowers can avoid late repayment penalty:** Validator uses validFrom timestamp for penalty calculation without restricting validity range length, allowing borrowers to set past validFrom to avoid late penalties. Requires semantic context to know if lower bound or upper bound should be used
+- **FTL3-313. Borrowers can avoid late repayment penalty**: Validator uses validFrom timestamp for penalty calculation without restricting validity range length, allowing borrowers to set past validFrom to avoid late penalties. Requires semantic context to know if lower bound or upper bound should be used
 
-- **FTL3-314. Installment amounts might not add up to the total principal and interest:** Individual installments rounded up separately may total more than single repayment of principal plus interest due to accumulated rounding errors. Requires understanding rounding accumulation and business logic for correct approach
+- **FTL3-314. Installment amounts might not add up to the total principal and interest**: Individual installments rounded up separately may total more than single repayment of principal plus interest due to accumulated rounding errors. Requires understanding rounding accumulation and business logic for correct approach
 
-- **FTL3-315. Total installments field for perpetual loans:** Field is mandatory for all loans but doesn't make sense for perpetual loans and can be misused to allow collateral claim without principal repayment. Requires understanding which fields apply to which loan types
+- **FTL3-315. Total installments field for perpetual loans**: Field is mandatory for all loans but doesn't make sense for perpetual loans and can be misused to allow collateral claim without principal repayment. Requires understanding which fields apply to which loan types
 
-- **FTL3-316. Hash function mismatch in oracle key verification:** Validator uses blake2b_256 to hash oracle keys but compares against VerificationKeyHash type which uses blake2b_224, causing comparisons to always fail. Logic bug requiring understanding hash function semantics and type requirements
+- **FTL3-316. Hash function mismatch in oracle key verification**: Validator uses blake2b_256 to hash oracle keys but compares against VerificationKeyHash type which uses blake2b_224, causing comparisons to always fail. Logic bug requiring understanding hash function semantics and type requirements
 
-- **FTL3-317. Native tokens can be sent to programmable credential:** Protocol doesn't restrict native tokens from being sent to programmable credential, causing user inconvenience requiring specific wallets to retrieve. Protocol design decision
+- **FTL3-317. Native tokens can be sent to programmable credential**: Protocol doesn't restrict native tokens from being sent to programmable credential, causing user inconvenience requiring specific wallets to retrieve. Protocol design decision
 
-- **FTL3-318. Big bond reference inputs can cause DoS via transaction limits:** Bloated reference inputs can exceed transaction limits. It is a design issue
+- **FTL3-318. Big bond reference inputs can cause DoS via transaction limits**: Bloated reference inputs can exceed transaction limits. It is a design issue
 
-- **FTL3-401. Dropping a byte of a hash result is discouraged:** Token name generation drops byte from sha2_256 hash result instead of using full result from shorter hash function, which doesn't preserve studied pseudo-random properties. Code quality issue about cryptographic best practices
+- **FTL3-401. Dropping a byte of a hash result is discouraged**: Token name generation drops byte from sha2_256 hash result instead of using full result from shorter hash function, which doesn't preserve studied pseudo-random properties. Code quality issue about cryptographic best practices
 
-- **FTL3-402. Request id and pool id might be identical:** Request and pool tokens minted in the same transaction can receive identical asset names, causing conflicts in originAssetName field used off-chain. Requires understanding token name generation
+- **FTL3-402. Request id and pool id might be identical**: Request and pool tokens minted in the same transaction can receive identical asset names, causing conflicts in originAssetName field used off-chain. Requires understanding token name generation
 
-- **FTL3-403. Equity payment is in the principal asset:** Equity returned to the borrower in principal asset instead of collateral asset, which is counterintuitive (e.g., receiving stablecoin instead of ADA when ADA collateral is liquidated). Protocol design decision
+- **FTL3-403. Equity payment is in the principal asset**: Equity returned to the borrower in principal asset instead of collateral asset, which is counterintuitive (e.g., receiving stablecoin instead of ADA when ADA collateral is liquidated). Protocol design decision
 
-- **FTL3-404. Code quality, naming, and documentation issues:** Multiple issues including unused functions, misleading parameter names, shadowed type names, suboptimal validation patterns, incorrect comments, and outdated documentation. Code quality and maintenance issues already caught by standard tooling
+- **FTL3-404. Code quality, naming, and documentation issues**: Multiple issues including unused functions, misleading parameter names, shadowed type names, suboptimal validation patterns, incorrect comments, and outdated documentation. Code quality and maintenance issues already caught by standard tooling
 
 ## FluidTokens p2p Loans v3 v1.0
 
@@ -998,44 +1034,44 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **Relevant**
 
-- **FTA2-002. Borrower can claim his collateral prematurely:** Validator doesn't verify active loan output address matches own script hash, allowing borrower to redirect to controlled script and claim collateral without repaying.
+- **FTA2-002. Borrower can claim his collateral prematurely**: Validator doesn't verify active loan output address matches own script hash, allowing borrower to redirect to controlled script and claim collateral without repaying.
   <ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
 
-- **FTA2-003. Borrower can steal the whole content of a collection offer pool:** Validator verifies only staking credential of ongoing collection offer output without checking payment credential, allowing attacker to redirect to controlled script.
+- **FTA2-003. Borrower can steal the whole content of a collection offer pool**: Validator verifies only staking credential of ongoing collection offer output without checking payment credential, allowing attacker to redirect to controlled script.
   <ins>Detectable pattern</ins>: output validation checking only staking credential without payment credential validation [MISSING-ADDRESS-VALIDATION]
 
 **May be relevant**
 
-- **FTA2-001. The same bond NFT can be minted multiple times:** Token name uses bytearray.push with UTxO index without validating index < 256, causing wraparound where indices 1 and 257 produce identical token names and allowing duplicate NFT minting. Aiken-specific issue (bytearray.push wraps at 256); requires verification if equivalent issue exists in Haskell/Plinth.
+- **FTA2-001. The same bond NFT can be minted multiple times**: Token name uses bytearray.push with UTxO index without validating index < 256, causing wraparound where indices 1 and 257 produce identical token names and allowing duplicate NFT minting. Aiken-specific issue (bytearray.push wraps at 256); requires verification if equivalent issue exists in Haskell/Plinth.
 
-- **FTA2-201. Double satisfaction in the loan amount payment:** Lender pays loan amount directly to borrower's address without unique identifier, allowing malicious lender to batch with another protocol's operation to satisfy both with single payment.
+- **FTA2-201. Double satisfaction in the loan amount payment**: Lender pays loan amount directly to borrower's address without unique identifier, allowing malicious lender to batch with another protocol's operation to satisfy both with single payment.
   <ins>Detectable pattern</ins>: value aggregation filtering by address without datum uniqueness check [DOUBLE-SATISFACTION]
 
-- **FTA2-405. Undocumented assumptions and unchecked fields:** Several datum fields are assumed to be honest but not validated, allowing malformed UTxOs.
+- **FTA2-405. Undocumented assumptions and unchecked fields**: Several datum fields are assumed to be honest but not validated, allowing malformed UTxOs.
   <ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 
-- **FTA2-304. Undefined repayments' staking credential:** Validator doesn't validate staking credential in repayment UTxOs, allowing borrowers to set arbitrary credentials.
+- **FTA2-304. Undefined repayments' staking credential**: Validator doesn't validate staking credential in repayment UTxOs, allowing borrowers to set arbitrary credentials.
   <ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
 
 **Not relevant**
 
-- **FTA2-101. Lender and borrower bonds use the same policy:** Minting policies for lender and borrower bonds are identical because bondType variable is unused, preventing simultaneous minting required by validator. Logic bug requiring understanding the protocol's business logic
+- **FTA2-101. Lender and borrower bonds use the same policy**: Minting policies for lender and borrower bonds are identical because bondType variable is unused, preventing simultaneous minting required by validator. Logic bug requiring understanding the protocol's business logic
 
-- **FTA2-102. Repayments are locked when active loan is claimed:** Claiming active loan burns lender NFT, preventing withdrawal of already-repaid installments. Protocol design issue that requires understanding the business logic
+- **FTA2-102. Repayments are locked when active loan is claimed**: Claiming active loan burns lender NFT, preventing withdrawal of already-repaid installments. Protocol design issue that requires understanding the business logic
 
-- **FTA2-301 Script hashes in the code are placeholders:** Hardcoded script hashes are invalid placeholders, making the protocol undeployable. Build and deployment issue
+- **FTA2-301 Script hashes in the code are placeholders**: Hardcoded script hashes are invalid placeholders, making the protocol undeployable. Build and deployment issue
 
-- **FTA2-302. Duplications of type declarations:** Type declarations duplicated across multiple files with different names (e.g., Datum vs RepaymentDatum vs ActiveDatum), requiring manual synchronization of changes. Code organization issue that requires understanding the semantics of each type
+- **FTA2-302. Duplications of type declarations**: Type declarations duplicated across multiple files with different names (e.g., Datum vs RepaymentDatum vs ActiveDatum), requiring manual synchronization of changes. Code organization issue that requires understanding the semantics of each type
 
-- **FTA2-303. Min Ada is not handled by the smart contract:** Protocol doesn't explicitly handle minAda costs, causing borrowers to pay additional minAda per installment UTxO to lenders. Protocol economic design issue requiring understanding intended minAda allocation
+- **FTA2-303. Min Ada is not handled by the smart contract**: Protocol doesn't explicitly handle minAda costs, causing borrowers to pay additional minAda per installment UTxO to lenders. Protocol economic design issue requiring understanding intended minAda allocation
 
-- **FTA2-401. Aiken warnings:** Codebase produces 122 compiler warnings for unused imports, types, constructors, and code style issues. Code quality issues already caught by standard tooling
+- **FTA2-401. Aiken warnings**: Codebase produces 122 compiler warnings for unused imports, types, constructors, and code style issues. Code quality issues already caught by standard tooling
 
-- **FTA2-402. Helper functions are declared multiple times:** Helper functions duplicated across multiple files, sometimes unused. Code duplication issue already caught by standard tooling
+- **FTA2-402. Helper functions are declared multiple times**: Helper functions duplicated across multiple files, sometimes unused. Code duplication issue already caught by standard tooling
 
-- **FTA2-403. Graveyard design improvement:** Validator requires lender bond tokens sent to graveyard when withdrawing final repayment, forcing users to send tokens to graveyard then retrieve them when claiming repayments in arbitrary order. Protocol design decision about token lifecycle
+- **FTA2-403. Graveyard design improvement**: Validator requires lender bond tokens sent to graveyard when withdrawing final repayment, forcing users to send tokens to graveyard then retrieve them when claiming repayments in arbitrary order. Protocol design decision about token lifecycle
 
-- **FTA2-404. Incorrect documentation of the loan request's redeemer:** Documentation incorrectly describes lenderAddress field as borrower's bond NFT destination instead of lender's. Documentation issue
+- **FTA2-404. Incorrect documentation of the loan request's redeemer**: Documentation incorrectly describes lenderAddress field as borrower's bond NFT destination instead of lender's. Documentation issue
 
 - **FTA2-406. Naming and shadowing:** Variable names are unclear, generic, or misleading. Code style and naming issues
 
@@ -1067,3 +1103,4 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **ID-9. Missing Validation of Lent Amount Returned to Pool in TraderClose:** Protocol calculates send_asset_amount returned to pool but doesn't validate it matches or exceeds original lent amount plus fees, allowing users to return less than borrowed. Requires understanding business logic
 - **ID-10. Incorrect Liquidation Condition Due to Improper Loss Calculation:** Calculation subtracts total_value_loss from collateral_value, but when total_value_loss is negative the subtraction becomes addition, incorrectly increasing collateral value and preventing warranted liquidations. Requires understanding business logic
 - **ID-12. Missing Token Burn in liquidate_position Flow:** Liquidation doesn't burn position token unlike close_position and cancel_position flows, leaving orphaned tokens on-chain. Requires understanding token lifecycle
+
