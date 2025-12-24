@@ -2,65 +2,28 @@
 
 ## Overview
 
-This document summarizes findings from **24 Aiken audits** in the Cardano ecosystem.
+This document summarizes findings from **23 Aiken audits** in the Cardano ecosystem.
 
 **Findings Classification**:
 
-- **Relevant findings:** 69
-- **May be relevant findings:** 52
-- **Not relevant findings:** 149
-- **Total findings:** 270
+- **Relevant findings**: 57
+- **May be relevant findings**: 55
+- **Not relevant findings**: 148
+- **Total findings**: 260
 
 ### Common Patterns
 
 Common issues in Aiken smart contracts include:
 
-1. **Missing Address Validation (6 occurrences) - [MISSING-ADDRESS-VALIDATION]**: Minting policies and validators that fail to verify the destination address of minted tokens or continuing outputs, allowing attackers to redirect assets to arbitrary addresses.
+1. **Missing Address Validation (6 occurrences) - [MISSING-ADDRESS-VALIDATION]:** Minting policies and validators that fail to verify the destination address of minted tokens or continuing outputs, allowing attackers to redirect assets to arbitrary addresses.
 
-2. **Incomplete Token Validation (5 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]**: Validators that check only some components of token tuples (currency symbol, token name, or quantity) while leaving others unchecked, allowing attackers to mint unauthorized tokens with the same name but different policy or bypass burning requirements.
+2. **Incomplete Token Validation (5 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]:** Validators that check only some components of token tuples (currency symbol, token name, or quantity) while leaving others unchecked, allowing attackers to mint unauthorized tokens with the same name but different policy or bypass burning requirements.
 
-3. **Trash Tokens / Subset Value Validation (6 occurrences) - [TRASH-TOKENS]**: Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens, increasing costs and enabling potential exploits.
+3. **Trash Tokens / Subset Value Validation (6 occurrences) - [TRASH-TOKENS]:** Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens, increasing costs and enabling potential exploits.
 
-4. **Unvalidated Datum Fields (6 occurrences) - [UNVALIDATED-DATUM], [PARTIAL-UNVALIDATED-DATUM]**: Validators that create or update outputs without properly validating datum contents, allowing arbitrary or malicious data that can break subsequent operations or enable attacks.
+4. **Unvalidated Datum Fields (6 occurrences) - [UNVALIDATED-DATUM], [PARTIAL-UNVALIDATED-DATUM]:** Validators that create or update outputs without properly validating datum contents, allowing arbitrary or malicious data that can break subsequent operations or enable attacks.
 
-5. **Unvalidated Reference Script Field (4 occurrences) - [UNVALIDATED-REFERENCE-SCRIPT]**: Outputs that don't validate the reference script field, allowing arbitrary reference scripts to be attached, which can significantly increase future transaction fees.
-
-## Splash Protocol Dex
-
-**Auditor**: AnastasiaLabs
-
-**Auditee**: Spectrum Labs
-
-**Description**: Unlike centralized exchanges that match buy and sell orders (aka CLOB exchanges), or constant product Automated Market Maker (AMM) exchanges, Splash uses different types of AMM liquidity pools, the Virtual Limit Order Book (VLOB), and combines them all. This allows different types of market makers to earn interest by providing liquidity as efficiently as they want, and traders to benefit from the best prices by tapping all liquidity in a single order.
-
-### Findings
-
-**May be relevant**
-
-- **ID-401. DAO can change the pool unrestricted**: Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum.<br><ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input
-- **ID-301 Zero spam**: Ensure that a minimal amount is actually transacted to avoid the possibility of endless deposit and redeem the same value. It is recommended to add some minimal fee to the redeem action to make it more expensive (also check for a minimal amount of tokens to be deposited instead of allowing 0). Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
-- **ID-302 Destroy allows hijacking the pool**: Not checking the output datum and value when the pool is spent with the Destroy redeemer.<br><ins>Detectable pattern</ins>: lack of check of the output datum and value. [MISSING-DATUM-VALIDATION]
-- **ID-303. Lack of checking of the purpose field of the staking validator**: Staking validator doesn't validate ScriptPurpose field, allowing unintended execution of delegate or deregister actions instead of reward withdrawal, with deregistration invalidating DAO policy checks.<br><ins>Detectable pattern</ins>: staking validator without purpose field validation in script context
-- **ID-201 Pool creation**: Pool NFT and liquidity token minting policies don't validate destination address or initial pool datum state during minting, relying entirely on off-chain code for correct initialization.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens and checks on the correctness of the datum missing. [MISSING-ADDRESS-VALIDATION]
-- **ID-202. Fee consistency checks**: Protocol validates individual bounds for feeNum and treasuryFee but doesn't enforce their relationship, allowing feeNum - treasuryFee to become negative and break all swap transactions.<br><ins>Detectable pattern</ins>: subtraction without relational constraint (eg. treasuryFee >= feeNum)
-- **ID-101 Other token name**: Pool NFT and pool liquidity minting policies allow minting any number of tokens that are named differently than the configured ones.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **ID-106. Duplicates in DAO signers**: DAOPolicy signer list doesn't check for duplicates, allowing some key holders to have amplified voting power and increased risk if compromised.<br><ins>Detectable pattern</ins>: lists of identity/authorization types (PubKeyHash, Address, ValidatorHash, etc.) without uniqueness validation
-- **ID-108 Optimize output datum validation**: Validation on the continuing datum of the pool is done comparing individual fields of the input datum with the fields of the output datum. Instead, constructing the expected datum and compare it against the actual datum in the continuing pool output would be more efficient.<br><ins>Detectable pattern</ins>: multiple individual field comparisons between datums
-- **ID-109 Treasury fee denominator must be equal to fee denominator**: Two constants with the same value that are used for the same purpose, could lead to misunderstandings in the future.<br><ins>Detectable pattern</ins>: Two constats
-- **ID-111. Unnecessary if in correctLpTokenDelta**:<br><ins>Detectable pattern</ins>: conditional logic made redundant by subsequent constraints. Requires constraint solving and data flow analysis to detect unreachable branches
-- **ID-114 Unnecessary datum re-construction**: Function extracts fields from input datum, reconstructs new datum from those fields, then compares to output datum instead of direct equality check.<br><ins>Detectable pattern</ins>: datum fields extracted and immediately used to reconstruct identical datum structure
-
-**Not relevant**
-
-- **ID-501 DAO can withdraw all user funds**: The minting policy (PFeeSwitch) doesn’t check that the output pool UTxO assets to exchange (treasuryX and treasuryY) are not negative in the validateTreasuryWithdraw function
-- **ID-102 Potential of unsafe order types**: There is no restriction on the types of orders the pool can execute, anyone can implement their own “order” smart contract or interact directly with the pool. An issue may arise for incorrectly implemented order contracts that promise to execute a desired operation, but due to bug/malicious intent, the contract might not execute.
-- **ID-103 Order types may be vulnerable to frontrunning**: There is no restriction on the types of orders the pool can execute, anyone can implement their own “order” smart contract or interact directly with the pool. This makes it possible for executors to front-run user swaps and other operations if the order type does not prevent this
-- **ID-104 Confusing variable naming**: Variables feeNum and feeDen are named misleadingly - feeNum / feeDen represents the portion user receives after fees rather than the fee ratio itself, potentially causing developer confusion. Code clarity/naming issue
-- **ID-105 Setting invalid/empty DAOPolicy**: DAOPolicy field in the datum is used to check the execution of dao actions on the pool. Setting the DAOPolicy value to a wrong value or setting it to an empty list will make accessing the treasury amounts in the pool impossible
-- **ID-107 DAO signers**: The list of accepted signatories cannot be examined by looking at the onchain data and certain operations can change the DAOPolicy. There is no way to check the actual list of a DAOPolicy
-- **ID-110 Redundant rounding**: Redundant call to the rounding function
-- **ID-112 Fee consistency checks**: Upper limit of the swap fees should be modified to a reasonable price
-- **ID-113 Fixed Balance pool weights**: Implementation only supports two-token pools with fixed 20:80 ratio instead of customizable weights. Business logic issue
+5. **Unvalidated Reference Script Field (4 occurrences) - [UNVALIDATED-REFERENCE-SCRIPT]:** Outputs that don't validate the reference script field, allowing arbitrary reference scripts to be attached, which can significantly increase future transaction fees.
 
 ## BookToken
 

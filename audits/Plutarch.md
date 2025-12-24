@@ -124,7 +124,7 @@ Common issues in Plutarch smart contracts include:
 **Relevant**
 
 - **LIQV1-001. Retrieving the collateral without repaying allows for draining a market**: Borrow token minting policy doesn't verify the output address where the new borrow token is sent, allowing attacker to redirect collateral to a malicious script instead of the proper loan validator.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
-- **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum**: Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification.<br><ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
+- **LIQV1-003. Loan collateral can be stolen by overwriting the loan datum**: Conditional logic skips datum validation on continuing output, allowing arbitrary datum modification.<br><ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-DATUM]
 
 **Not relevant**
 
