@@ -37,20 +37,15 @@ Common issues in Plutarch smart contracts include:
 
 **Relevant**
 
-- **AGO-104. Attacker can fail any voted-on/locked proposal:** Validator doesn't check transaction validity range length.<br><ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
-- **AGO-105. Stake ST token name not checked:** Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-203. Stakes can be frozen effectively forever by the multisig entity:** Validator doesn't check transaction validity range length.<br><ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
-- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit:** Function validates currency symbol but not token name of stake ST.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-306: Proposal can be DoSed by using UnlockStake with no input stakes:** Proposal voting could be DoSed spending a proposal with the correct redeemer, including no stake inputs.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
-- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes:** Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+- **AGO-104. Attacker can fail any voted-on/locked proposal**: Validator doesn't check transaction validity range length.<br><ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
+- **AGO-105. Stake ST token name not checked**: Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AGO-203. Stakes can be frozen effectively forever by the multisig entity**: Validator doesn't check transaction validity range length.<br><ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
+- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit**: Function validates currency symbol but not token name of stake ST.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AGO-306: Proposal can be DoSed by using UnlockStake with no input stakes**: Proposal voting could be DoSed spending a proposal with the correct redeemer, including no stake inputs.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes**: Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
 
 **May be relevant**
 
-- **AGO-105. Stake ST token name not checked**: Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-104. Attacker can fail any voted-on/locked proposal**: Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
-- **AGO-203. Stakes can be frozen effectively forever by the multisig entity**: Validator doesn't check transaction validity range length. Requires understanding acceptable validity range lengths
-- **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit**: Function validates currency symbol but not token name of stake ST.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes**: Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
 - **AGO-401. Staking credential is undefined**: Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.<br><ins>Detectable pattern</ins>: script addresses without defined staking credentials [UNVALIDATED-STAKING]
 
 **Not relevant**
