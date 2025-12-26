@@ -7,8 +7,8 @@ This document summarizes findings from **9 Plinth audits** in the Cardano ecosys
 **Findings Classification**:
 
 - **Relevant findings**: 18
-- **May be relevant findings**: 14
-- **Not relevant findings**: 79
+- **May be relevant findings**: 13
+- **Not relevant findings**: 80
 - **Total findings**: 111
 
 ### Common Patterns

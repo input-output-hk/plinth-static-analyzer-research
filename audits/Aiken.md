@@ -2,14 +2,14 @@
 
 ## Overview
 
-This document summarizes findings from **23 Aiken audits** in the Cardano ecosystem.
+This document summarizes findings from **36 Aiken audits** in the Cardano ecosystem.
 
 **Findings Classification**:
 
-- **Relevant findings**: 57
-- **May be relevant findings**: 55
-- **Not relevant findings**: 148
-- **Total findings**: 260
+- **Relevant findings**: 89
+- **May be relevant findings**: 65
+- **Not relevant findings**: 273
+- **Total findings**: 429
 
 ### Common Patterns
 
