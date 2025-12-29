@@ -6,8 +6,8 @@ This document summarizes findings from **36 Aiken audits** in the Cardano ecosys
 
 **Findings Classification**:
 
-- **Relevant findings**: 89
-- **May be relevant findings**: 65
+- **Relevant findings**: 98
+- **May be relevant findings**: 56
 - **Not relevant findings**: 273
 - **Total findings**: 429
 
@@ -148,12 +148,12 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **NUV-201 Reward Claim UTxOs can be created with no or more than one token**: ClaimReward creation does not enforce that exactly one reward token is present. <br><ins>Detectable pattern</ins>: validation without exact equality check on values. [INCOMPLETE-TOKEN-VALIDATION]
 - **NUV-204. Prevent inclusion of reference scripts**: Validator doesn't validate reference script field of outputs, allowing arbitrary reference scripts to be attached and increase future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
 - **NUV-303. Claim reward tokens can be minted with arbitrary token name**: Minting policy validates expected token name but doesn't restrict minting other token names under the same currency symbol.<br><ins>Detectable pattern</ins>: token name validation without restricting other names [INCOMPLETE-TOKEN-VALIDATION]
+- **NUV-305. Trash tokens can be added to multiple UTxOs**: Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.<br><ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
 
 **May be relevant**
 
 - **NUV-202. Missing checks for some LendingDatum fields**: Datum fields not validated during creation, allowing unreasonable values.<br><ins>Detectable pattern</ins>: outputs with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
 - **NUV-301. CreateLend spend redeemer can be used to remove a lend UTxO**: Wildcard pattern matching on redeemer allows unintended redeemer types to trigger logic.<br><ins>Detectable pattern</ins>: wildcard pattern matching on redeemer types
-- **NUV-305. Trash tokens can be added to multiple UTxOs**: Validator checks required tokens are present but doesn't restrict additional tokens, allowing arbitrary tokens to bloat UTxOs and increase costs.<br><ins>Detectable pattern</ins>: subset value validation without exact equality check [TRASH-TOKENS]
 
 **Not relevant**
 
@@ -182,6 +182,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **ID-202. Continuing output datum and reference scripts can change**: Validation checks output address and value don't change but doesn't validate datum and reference script fields remain unchanged.<br><ins>Detectable pattern</ins>: output validation without datum and reference script field checks [UNVALIDATED-DATUM] [UNVALIDATED-REFERENCE-SCRIPT]
 - **ID-204. Missing checks on minting and updating operations**: Creation operation validates some datum fields but doesn't check list fields for duplicates or validate some fields have reasonable values. Update operation also missing these checks.<br><ins>Detectable pattern</ins>: lists without uniqueness validation and datum fields without bounds validation [LIST-UNIQUENESS] [PARTIAL-UNVALIDATED-DATUM]
 - **ID-206. Arbitrary tokens can be added to values**: Validators check inclusion instead of equality, allowing token dust and UTxO bloat which might increase transaction size and fees.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+- **ID-203. Multiple tokens can be paid to the same UTxO**: Minting allows multiple tokens in one UTxO, breaking assumptions for subsequent operations.<br><ins>Detectable pattern</ins>: token quantity not validated when minting [INCOMPLETE-TOKEN-VALIDATION]
 
 **May be relevant**
 
@@ -189,7 +190,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **ID-003. Consistency of certain fields not validated in operation**: Critical datum fields are not checked for consistency, allowing silent corruption of state.<br><ins>Detectable pattern</ins>: datum field read but not checked [PARTIAL-UNVALIDATED-DATUM]
 - **ID-105. Missing validation in multiple operations**: Multiple fields not validated in continuing outputs, address filtering uses complete address instead of payment credential, value comparisons use >= instead of exact equality.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 - **ID-302. Optimize expected datum verification**: Datum equality checks cast output data to specific type then compare, could be optimized by casting expected datum to Data and comparing directly.<br><ins>Detectable pattern</ins>: datum equality checks using upcast instead of downcast. Check if there is similar mechanism in Plinth.
-- **ID-203. Multiple tokens can be paid to the same UTxO**: Minting allows multiple tokens in one UTxO, breaking assumptions for subsequent operations.<br><ins>Detectable pattern</ins>: token quantity not validated when minting [INCOMPLETE-TOKEN-VALIDATION]
 
 ## Private Audit #04
 
@@ -321,12 +321,12 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **Relevant**
 
 - **ID-201. Restricted token dust attack**: Validator checks input and output values that have same policy IDs but doesn't verify same token names within those policies, allowing attackers to add arbitrary tokens under the same policy.<br><ins>Detectable pattern</ins>: value comparison using only `policies()` equality without validating complete asset list (policy + token name pairs) [INCOMPLETE-TOKEN-VALIDATION] [TRASH-TOKENS]
-- **ID-301. Zero spam**: Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. It should ensure a minimal amount is actually transacted. Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
 - **ID-401. DAO can change the pool unrestricted**: Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum.<br><ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input [UNVALIDATED-INPUT-INDEX]
 
 **May be relevant**
 
 - **ID-501. Wrong usage of DAO action validator script**: Pool validator expects DAO script hash to be used as staking credential, but DAO is implemented as spending validator (spend keyword) instead of staking validator (withdraw keyword), causing type mismatch that bypasses validation when executed in staking context.<br><ins>Detectable pattern</ins>: script hash used in staking context but corresponding validator declared with wrong validator type keyword
+- **ID-301. Zero spam**: Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. It should ensure a minimal amount is actually transacted. Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
 
 **Not relevant**
 
@@ -452,6 +452,9 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 - **MAS-101 - Possible to bloat Payment UTxO with trash assets**: Validator checks output value >= input value without enforcing equality, allowing arbitrary tokens to be added to Payment UTxO.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 - **MAS-201 - Prevent inclusion of reference scripts**: Validator doesn't validate reference script fields in outputs, allowing arbitrary reference scripts to be attached and increasing future transaction fees.<br><ins>Detectable pattern</ins>: output validation without reference script field checks [UNVALIDATED-REFERENCE-SCRIPT]
+
+**May be relevant**
+
 - **MAS-308 - Validate Payment UTxO initial state**: Payment UTxO can be created with invalid datum field values without validation of initial state.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 
 **Not relevant**
@@ -619,12 +622,12 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **Relevant**
 
 - **AADAIK-001. Attacker can spoof AADA NFTs and impersonate their rightful holders**: Function validate_token_mint validates specific token tuple is minted but doesn't check exclusivity, allowing attacker to mint additional tokens with different names in same transaction.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
+- **AADAIK-203. ADA locked by the protocol can not be staked**: Contract addresses constructed with None as staking credential and validator enforces no staking credential on inputs, preventing staking of locked ADA.<br><ins>Detectable pattern</ins>: missing staking credential in script addresses [UNVALIDATED-STAKING]
 
 **May be relevant**
 
 - **AADAIK-102. Double satisfaction among different scripts**: Validators prevent double satisfaction only among same protocol's script inputs, allowing attacker to batch with other protocol's scripts expecting payment to same party.<br><ins>Detectable pattern</ins>: double satisfaction prevention checking only same-script inputs without restricting other script inputs [DOUBLE-SATISFACTION]
 - **AADAIK-202. Interest calculation is imprecise**: Interest calculation uses division before multiplication (elapsed / total) _ amount, losing precision compared to (elapsed _ amount) / total.<br><ins>Detectable pattern</ins>: division before multiplication losing precision [PRECISION-LOSS]
-- **AADAIK-203. ADA locked by the protocol can not be staked**: Contract addresses constructed with None as staking credential and validator enforces no staking credential on inputs, preventing staking of locked ADA.<br><ins>Detectable pattern</ins>: missing staking credential in script addresses [UNVALIDATED-STAKING]
 
 **Not relevant**
 
@@ -649,17 +652,17 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **Relevant**
 
 - **ID3-101 Reference keepers might block all scripts and value**: Reference keepers can move the genesis token to an arbitrary address, breaking all scripts and locking all protocol funds. <br><ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
+- **ID3-303. Operator can mint any node, order and delegation tokens**: Minting policy validates a mint occurs but doesn't restrict to specific token name in redeemer, allowing operator to mint arbitrary additional tokens with different names. <br><ins>Detectable pattern</ins>: minting validation without token name exclusivity [INCOMPLETE-TOKEN-VALIDATION]
 - **ID3-306. Node can be moved to any address during an update**: Node update doesn't validate new node UTxO address remains unchanged, allowing redirection to arbitrary address. <br><ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
 - **ID3-308. Delegation can be moved to any address during an update**: Delegation update doesn't validate new delegation UTxO address remains unchanged, allowing redirection to arbitrary address. <br><ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
 - **ID3-309. Split delegation UTxOs are mostly unchecked**: Split delegation creates new delegation UTxOs with arbitrary addresses and unchecked datums, only validating value contains delegation token and IAG stake. <br><ins>Detectable pattern</ins>: output creation with incomplete validation (address and datum unchecked) [MISSING-ADDRESS-VALIDATION] [UNVALIDATED-DATUM]
 - **ID3-311. The payment output could contain dust tokens**: Payment output validation doesn't restrict tokens to Ada only, allowing arbitrary tokens that increase minAda and reduce usable value to the seller. <br><ins>Detectable pattern</ins>: subset value validation without token restriction checks [TRASH-TOKENS]
+- **ID3-312. The payment output can be staked to any credential**: Payment output staking credential unchecked, allowing operator to choose arbitrary credential. <br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
 
 **May be relevant**
 
 - **ID3-103. Reference keepers might block all scripts and value II**: Reference keepers can make keeper list arbitrarily long, causing reference UTxO to exceed transaction size or execution limits in dependent scripts. <br><ins>Detectable pattern</ins>: unbounded list length without size validation
 - **ID3-302 Order tokens can be freely minted**: Burn redeemer also allows minting arbitrary order tokens, bypassing mint validation. <br><ins>Detectable pattern</ins>: No exclusivity enforced on burning
-- **ID3-303. Operator can mint any node, order and delegation tokens**: Minting policy validates a mint occurs but doesn't restrict to specific token name in redeemer, allowing operator to mint arbitrary additional tokens with different names. <br><ins>Detectable pattern</ins>: minting validation without token name exclusivity [INCOMPLETE-TOKEN-VALIDATION]
-- **ID3-312. The payment output can be staked to any credential**: Payment output staking credential unchecked, allowing operator to choose arbitrary credential. <br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
 - **ID3-408. Some fields are not used nor verified on-chain**: Datum fields not validated on-chain, relying on operator to set correctly. <br><ins>Detectable pattern</ins>: datum fields without validation [PARTIAL-UNVALIDATED-DATUM]
 
 **Not relevant**
@@ -693,15 +696,15 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **Relevant**
 
 - **CCA-003. Value checks are not satisfiable**: Validator uses value.policies function and asserts result equals specific list of policies, but list doesn't include Ada policy (#"") which is present in every UTxO, making all checks unsatisfiable and preventing protocol operation.<br><ins>Detectable pattern</ins>: value.policies equality check without accounting for Ada policy
+- **CCA-301. Staking credentials are not handled**: Validator doesn't check staking credentials on user deposits and Bank UTxOs, allowing transaction authors to allocate future staking rewards to themselves.<br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
 - **CCA-303. Strict Ada amount comparison**: Validator requires exact Ada amount in output UTxOs without accounting for minAda requirements, making UTxO creation infeasible when computed amount is below minAda threshold.<br><ins>Detectable pattern</ins>: exact equality on ADA amounts in output validation [STRICT-VALUE-EQUALITY]
 - **CCA-304. UTxOs can be polluted by dust tokens**: Validator checks only Ada value without restricting other tokens, allowing arbitrary tokens to be added to UTxOs and causing transaction loading issues.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+- **CCA-306 Owner’s staking credential can be set arbitrarily**: Wins are paid to a pubkey hash without staking credentials, allowing backend manipulation.<br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
 
 **May be relevant**
 
 - **CCA-201 Empty transactions**: Transactions with no valid updates can reshuffle UTxOs, blocking legitimate backend operations.<br><ins>Detectable pattern</ins>: Allowing transactions without enforcing meaningful actions [UNCHANGED-STATE]
 - **CCA-204. Double satisfaction on Bet owner's compensation**: Validator checks only own script inputs when validating compensation payment to Bet owner's address, allowing multiple scripts expecting payment to the same address to be satisfied with single payment.<br><ins>Detectable pattern</ins>: value aggregation filtering by address without script input uniqueness check [DOUBLE-SATISFACTION]
-- **CCA-301. Staking credentials are not handled**: Validator doesn't check staking credentials on user deposits and Bank UTxOs, allowing transaction authors to allocate future staking rewards to themselves.<br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
-- **CCA-306 Owner’s staking credential can be set arbitrarily**: Wins are paid to a pubkey hash without staking credentials, allowing backend manipulation.<br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
 
 **Not relevant**
 
@@ -913,13 +916,13 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 - **FTA2-002. Borrower can claim his collateral prematurely**: Validator doesn't verify active loan output address matches own script hash, allowing borrower to redirect to controlled script and claim collateral without repaying.<br><ins>Detectable pattern</ins>: continuing output without address validation [MISSING-ADDRESS-VALIDATION]
 - **FTA2-003. Borrower can steal the whole content of a collection offer pool**: Validator verifies only staking credential of ongoing collection offer output without checking payment credential, allowing attacker to redirect to controlled script.<br><ins>Detectable pattern</ins>: output validation checking only staking credential without payment credential validation [MISSING-ADDRESS-VALIDATION]
+- **FTA2-304. Undefined repayments' staking credential**: Validator doesn't validate staking credential in repayment UTxOs, allowing borrowers to set arbitrary credentials.<br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
 
 **May be relevant**
 
 - **FTA2-001. The same bond NFT can be minted multiple times**: Token name uses bytearray.push with UTxO index without validating index < 256, causing wraparound where indices 1 and 257 produce identical token names and allowing duplicate NFT minting. Aiken-specific issue (bytearray.push wraps at 256); requires verification if equivalent issue exists in Haskell/Plinth.
 - **FTA2-201. Double satisfaction in the loan amount payment**: Lender pays loan amount directly to borrower's address without unique identifier, allowing malicious lender to batch with another protocol's operation to satisfy both with single payment.<br><ins>Detectable pattern</ins>: value aggregation filtering by address without datum uniqueness check [DOUBLE-SATISFACTION]
 - **FTA2-405. Undocumented assumptions and unchecked fields**: Several datum fields are assumed to be honest but not validated, allowing malformed UTxOs.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
-- **FTA2-304. Undefined repayments' staking credential**: Validator doesn't validate staking credential in repayment UTxOs, allowing borrowers to set arbitrary credentials.<br><ins>Detectable pattern</ins>: output validation without staking credential checks [UNVALIDATED-STAKING]
 
 **Not relevant**
 
@@ -944,12 +947,15 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 ### Findings
 
-**May be relevant**
+**Relevant**
 
-- **ID-2. Missing Validation and Unbounded Fields in Position Datum:** Position datum fields not validated during minting, allowing unrealistic leverage, prices, or timestamps. Validity range is not restricted, allowing long ranges that distort time-sensitive calculations.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation combined with unrestricted validity range [PARTIAL-UNVALIDATED-DATUM] [VALIDITY-RANGE-BOUND]
-- **ID-7. Missing Validation for position_asset_amount When Opening a Position:** Contract reads position_asset_amount when opening position but doesn't validate value, allowing zero, negative, or unrealistically large values inconsistent with collateral/leverage.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 - **ID-11. Token Dust Attack on Pool Output:** Validator ensures NFT and underlying asset are present in pool output but doesn't restrict additional tokens, allowing attackers to bloat UTXO with arbitrary tokens causing size limit issues.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
 - **ID-13. Missing Token Validation in Output Value:** Validators don't perform explicit validation of output token composition, allowing unexpected tokens to be added or token quantities altered without detection.<br><ins>Detectable pattern</ins>: subset value validation instead of equality check [TRASH-TOKENS]
+- **ID-2. Missing Validation and Unbounded Fields in Position Datum:** Position datum fields not validated during minting, allowing unrealistic leverage, prices, or timestamps. Validity range is not restricted, allowing long ranges that distort time-sensitive calculations.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation combined with unrestricted validity range [PARTIAL-UNVALIDATED-DATUM] [VALIDITY-RANGE-BOUND]
+
+**May be relevant**
+
+- **ID-7. Missing Validation for position_asset_amount When Opening a Position:** Contract reads position_asset_amount when opening position but doesn't validate value, allowing zero, negative, or unrealistically large values inconsistent with collateral/leverage.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 
 **Not relevant**
 

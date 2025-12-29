@@ -6,8 +6,8 @@ This document summarizes findings from **9 Plinth audits** in the Cardano ecosys
 
 **Findings Classification**:
 
-- **Relevant findings**: 18
-- **May be relevant findings**: 13
+- **Relevant findings**: 19
+- **May be relevant findings**: 12
 - **Not relevant findings**: 80
 - **Total findings**: 111
 
@@ -157,10 +157,10 @@ Common issues in Plinth smart contracts include:
 - **2.2.1.1. All assets can be stolen from lending UTxOs**: Minting policy searches for continuing output by datum type without verifying destination address, allowing assets to be redirected to any address with matching datum.<br><ins>Detectable pattern</ins>: output filtered by datum properties without scriptAddress/validatorHash check [MISSING-ADDRESS-VALIDATION]
 - **2.2.2.1. The amount of Ada in the script is too strict**: Validators enforce exact ADA amounts (2 or 4 ADA) in script outputs using equality checks, but Plutus V2 minimum ADA depends on UTxO size.<br><ins>Detectable pattern</ins>: exact equality check on ADA amounts in output validation (potentially outdated Plutus V1 pattern or misunderstanding of minUTxO) [STRICT-VALUE-EQUALITY]
 - **2.2.2.3. Borrower NFT could be referenced when retrieving loan assets**: Transaction spends and recreates UTxO containing borrower NFT to prove ownership instead of using reference input.<br><ins>Detectable pattern</ins>: UTxO spent and recreated without change [READ-ONLY-SPEND]
+- **2.2.2.6. Inputs other than the script ones should be allowed to have datums**: Validator searches for "the only input with any datum" instead of filtering by specific datum type and address, preventing transactions from including other inputs with datums.<br><ins>Detectable pattern</ins>: Search for datum without enforcing specific type [UNVALIDATED-DATUM]
 
 **May be relevant**
 
-- **2.2.2.6. Inputs other than the script ones should be allowed to have datums**: Validator searches for "the only input with any datum" instead of filtering by specific datum type and address, preventing transactions from including other inputs with datums.<br><ins>Detectable pattern</ins>: Search for datum without enforcing specific type [UNVALIDATED-DATUM]
 - **2.2.4.1. Validation guards are not centralized**: Validation logic scattered across partial utility functions that throw errors internally, rather than centralized guards in the validator with total utility functions returning Maybe/Either.<br><ins>Detectable pattern</ins>: utility functions containing error/traceError/debugError calls, hiding validation logic away from main validator [PARTIAL-UTILITIES]
 
 **Not relevant**

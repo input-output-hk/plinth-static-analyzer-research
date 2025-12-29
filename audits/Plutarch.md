@@ -6,8 +6,8 @@ This document summarizes findings from **5 Plutarch audits** in the Cardano ecos
 
 **Findings Classification**:
 
-- **Relevant findings**: 19
-- **May be relevant findings**: 5
+- **Relevant findings**: 16
+- **May be relevant findings**: 8
 - **Not relevant findings**: 78
 - **Total findings**: 102
 
@@ -41,12 +41,12 @@ Common issues in Plutarch smart contracts include:
 - **AGO-105. Stake ST token name not checked**: Stake validator validates currency symbol but not token name of stake ST, allowing attacker to use tokens with wrong names and fake vote history.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
 - **AGO-203. Stakes can be frozen effectively forever by the multisig entity**: Validator doesn't check transaction validity range length.<br><ins>Detectable pattern</ins>: temporal checks without validity range length constraints [VALIDITY-RANGE-BOUND]
 - **AGO-204. Governor can be DoSed by creating Proposals without passing min GT limit**: Function validates currency symbol but not token name of stake ST.<br><ins>Detectable pattern</ins>: incomplete validation of token tuple components (cs, tn, n) [INCOMPLETE-TOKEN-VALIDATION]
-- **AGO-306: Proposal can be DoSed by using UnlockStake with no input stakes**: Proposal voting could be DoSed spending a proposal with the correct redeemer, including no stake inputs.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
-- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes**: Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+- **AGO-401. Staking credential is undefined**: Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.<br><ins>Detectable pattern</ins>: script addresses without defined staking credentials [UNVALIDATED-STAKING]
 
 **May be relevant**
 
-- **AGO-401. Staking credential is undefined**: Protocol doesn't define staking credentials for script UTxOs, potentially missing staking rewards and complicating off-chain UTxO discovery.<br><ins>Detectable pattern</ins>: script addresses without defined staking credentials [UNVALIDATED-STAKING]
+- **AGO-306: Proposal can be DoSed by using UnlockStake with no input stakes**: Proposal voting could be DoSed spending a proposal with the correct redeemer, including no stake inputs.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
+- **AGO-307. Proposal can be DoSed by using UnlockStake with relevant cosigners' stakes**: Validator allows operation that passes validation but doesn't change state, enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
 
 **Not relevant**
 
@@ -87,7 +87,6 @@ Common issues in Plutarch smart contracts include:
 - **ID-106. Duplicates in DAO signers:** DAOPolicy signer list doesn't check for duplicates, allowing some key holders to have amplified voting power and increased risk if compromised.<br><ins>Detectable pattern</ins>: lists of identity/authorization types (PubKeyHash, Address, ValidatorHash, etc.) without uniqueness validation [LIST-UNIQUENESS]
 - **ID-201. Pool creation:** Pool NFT and liquidity token minting policies don't validate destination address or initial pool datum state during minting, relying entirely on off-chain code for correct initialization.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION] [UNVALIDATED-DATUM]
 - **ID-302 Destroy allows hijacking the pool:** Not checking the output datum and value when the pool is spent with the Destroy redeemer.<br><ins>Detectable pattern</ins>: output without datum validation [UNVALIDATED-DATUM]
-- **ID-301. Zero spam:** Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. Requires semantic understanding of whether operations with zero amounts are intentional.<br><ins>Detectable pattern</ins>: operations that don't change state [UNCHANGED-STATE]
 - **ID-401. DAO can change the pool unrestricted:** Minting policy uses input index from redeemer to identify pool UTxO but doesn't verify the presence of pool NFT at that index, allowing attackers to substitute fake UTxO at pool address with arbitrary datum.<br><ins>Detectable pattern</ins>: input selection by redeemer-provided index without validating presence of identifying NFT at that input [UNVALIDATED-INPUT-INDEX]
 
 **May be relevant**
@@ -95,6 +94,7 @@ Common issues in Plutarch smart contracts include:
 - **ID-108. Optimize output datum validation:** Validator compares output datum field-by-field instead of constructing expected datum and comparing as whole.<br><ins>Detectable pattern</ins>: multiple individual field comparisons between datums
 - **ID-114. Unnecessary datum re-construction:** Function extracts fields from input datum, reconstructs new datum from those fields, then compares to output datum instead of direct equality check.<br><ins>Detectable pattern</ins>: datum fields extracted and immediately used to reconstruct identical datum structure
 - **ID-202. Fee consistency checks:** Protocol validates individual bounds for feeNum and treasuryFee but doesn't enforce their relationship, allowing feeNum - treasuryFee to become negative and break all swap transactions.<br><ins>Detectable pattern</ins>: subtraction without relational constraint (eg. treasuryFee >= feeNum)
+- **ID-301. Zero spam:** Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. Requires semantic understanding of whether operations with zero amounts are intentional.<br><ins>Detectable pattern</ins>: operations that don't change state [UNCHANGED-STATE]
 - **ID-303. Lack of checking of the purpose field of the staking validator:** Staking validator doesn't validate ScriptPurpose field, allowing unintended execution of delegate or deregister actions instead of reward withdrawal, with deregistration invalidating DAO policy checks.<br><ins>Detectable pattern</ins>: staking validator without purpose field validation in script context
 
 **Not relevant**
@@ -205,6 +205,9 @@ Common issues in Plutarch smart contracts include:
 **Relevant**
 
 - **MTOK-202. Filling up the UTxOs with arbitrary tokens**: Validator doesn't restrict which tokens can be included in Archive and Locker UTxOs, allowing attackers to bloat them with arbitrary tokens and cause transactions to hit size limits.<br><ins>Detectable pattern</ins>: subset value validation instead of exact equality check [TRASH-TOKENS]
+
+**May be Relevant**
+
 - **MTOK-302. Denial of service of the Archive**: Archive UTxO can be included in arbitrary transactions without performing its intended function (adding tokens or processing Lockers), enabling DoS attacks.<br><ins>Detectable pattern</ins>: operations that succeed without modifying state [UNCHANGED-STATE]
 
 **Worth Noting**
