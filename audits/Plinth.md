@@ -15,11 +15,11 @@ This document summarizes findings from **9 Plinth audits** in the Cardano ecosys
 
 Common issues in Plinth smart contracts include:
 
-1. **Incomplete Token Validation (4 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]**: Validators that check currency symbol but not token name, check token presence without verifying burn vs mint quantity, or validate specific token names without restricting other names under the same policy.
+1. **Incomplete Token Validation (5 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]**: Validators that check currency symbol but not token name, check token presence without verifying burn vs mint quantity, or validate specific token names without restricting other names under the same policy.
 
 2. **Missing Address Validation (4 occurrences) - [MISSING-ADDRESS-VALIDATION]**: Minting policies that validate token properties but fail to verify the destination address where tokens are sent, allowing attackers to redirect minted tokens (including NFTs and authority tokens) to arbitrary addresses instead of intended validators.
 
-3. **Double Satisfaction Attacks (1 occurrence) - [DOUBLE-SATISFACTION]**: Validators that aggregate outputs by address without checking datum uniqueness or verifying input uniqueness, allowing attackers to batch multiple operations and satisfy multiple requirements with a single payment or token burn.
+3. **Double Satisfaction Attacks (3 occurrence) - [DOUBLE-SATISFACTION]**: Validators that aggregate outputs by address without checking datum uniqueness or verifying input uniqueness, allowing attackers to batch multiple operations and satisfy multiple requirements with a single payment or token burn.
 
 4. **Read-Only Spends (3 occurrences) - [READ-ONLY-SPEND]**: UTxOs spent but recreated identically instead of using reference inputs, causing unnecessary contention and transaction conflicts.
 
@@ -252,7 +252,7 @@ Common issues in Plinth smart contracts include:
 
 - **2.3.1.1. uniqNFT can be redirected when posting a bond**: Minting policy doesn't verify minted uniqNFT goes to correct validator address, allowing redirection to arbitrary address.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
 - **2.3.1.4. Pool tokens target is unchecked**: Minting policy doesn't verify where minted pool tokens are sent, allowing redirection to arbitrary addresses or minting without pool creation.<br><ins>Detectable pattern</ins>: minting policy missing destination address validation for minted tokens [MISSING-ADDRESS-VALIDATION]
-- **2.3.1.8. Funds can be locked after datum tampering**: Validator doesn't verify continuing output datum during partial redemption, allowing attackers to modify datum fields and break subsequent operations.<br><ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-CONTINUING-DATUM]
+- **2.3.1.8. Funds can be locked after datum tampering**: Validator doesn't verify continuing output datum during partial redemption, allowing attackers to modify datum fields and break subsequent operations.<br><ins>Detectable pattern</ins>: continuing output at same script address without any datum validation (neither full equality nor field-specific checks) [UNVALIDATED-DATUM]
 
 **May be relevant**
 
