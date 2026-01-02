@@ -15,15 +15,15 @@ This document summarizes findings from **36 Aiken audits** in the Cardano ecosys
 
 Common issues in Aiken smart contracts include:
 
-1. **Missing Address Validation (6 occurrences) - [MISSING-ADDRESS-VALIDATION]:** Minting policies and validators that fail to verify the destination address of minted tokens or continuing outputs, allowing attackers to redirect assets to arbitrary addresses.
+1. **Unvalidated Datum Fields (27 occurrences) - [UNVALIDATED-DATUM], [PARTIAL-UNVALIDATED-DATUM]:** Validators that create or update outputs without properly validating datum contents, allowing arbitrary or malicious data that can break subsequent operations or enable attacks.
 
-2. **Incomplete Token Validation (5 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]:** Validators that check only some components of token tuples (currency symbol, token name, or quantity) while leaving others unchecked, allowing attackers to mint unauthorized tokens with the same name but different policy or bypass burning requirements.
+2. **Trash Tokens / Subset Value Validation (20 occurrences) - [TRASH-TOKENS]:** Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens, increasing costs and enabling potential exploits.
 
-3. **Trash Tokens / Subset Value Validation (6 occurrences) - [TRASH-TOKENS]:** Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens, increasing costs and enabling potential exploits.
+3. **Missing Address Validation (15 occurrences) - [MISSING-ADDRESS-VALIDATION]:** Minting policies and validators that fail to verify the destination address of minted tokens or continuing outputs, allowing attackers to redirect assets to arbitrary addresses.
 
-4. **Unvalidated Datum Fields (6 occurrences) - [UNVALIDATED-DATUM], [PARTIAL-UNVALIDATED-DATUM]:** Validators that create or update outputs without properly validating datum contents, allowing arbitrary or malicious data that can break subsequent operations or enable attacks.
+4. **Incomplete Token Validation (17 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]:** Validators that check only some components of token tuples (currency symbol, token name, or quantity) while leaving others unchecked, allowing attackers to mint unauthorized tokens with the same name but different policy or bypass burning requirements.
 
-5. **Unvalidated Reference Script Field (4 occurrences) - [UNVALIDATED-REFERENCE-SCRIPT]:** Outputs that don't validate the reference script field, allowing arbitrary reference scripts to be attached, which can significantly increase future transaction fees.
+5. **Unvalidated Reference Script Field (13 occurrences) - [UNVALIDATED-REFERENCE-SCRIPT]:** Outputs that don't validate the reference script field, allowing arbitrary reference scripts to be attached, which can significantly increase future transaction fees.
 
 ## BookToken
 
