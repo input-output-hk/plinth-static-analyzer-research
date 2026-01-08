@@ -10,12 +10,12 @@ Any validator or minting policy that relies on token based authorization must fu
 ### Detection Logic
 
 **For minting cases**:
-```
+```hs
 <fold-function> (\(<var>, <var>, <var>) -> <logic>) (flattenValue $ txInfoMint (scriptContextTxInfo <var>))
 ```
 
 **For continuing output cases**:
-```
+```hs
 <fold-function> (\(<var>, <var>, <var>) -> <logic>) (flattenValue <var>)
 ```
 
@@ -46,7 +46,7 @@ validation1 v cs tk am =
             (cs' == cs && tk' == tk && am’ <= am) || (cs' == Ada.adaSymbol  && tk' == Ada.adaToken))
     (flattenValue v)
 
-{- This pattern may be obscured since the checks are performed through helper functions,
+{- From AADA. This pattern may be obscured since the checks are performed through helper functions,
     requiring a deeper analysis to detect -}
 mkPolicy tn ctx = validate
   where
@@ -81,5 +81,3 @@ validation2 v cs tk =
             (cs' == cs && tk' == tk ) || (cs' == Ada.adaSymbol  && tk' == Ada.adaToken))
     (flattenValue v)
 ```
-
-## Estimation
