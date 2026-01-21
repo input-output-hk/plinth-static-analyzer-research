@@ -19,8 +19,8 @@ Any validator or minting policy that relies on token based authorization must fu
 <fold-function> (\(<var>, <var>, <var>) -> <logic>) (flattenValue <var>)
 ```
 
-Fold function could be any function that iterates over the elements of a list such as `filter`, `all`, etc.
-The logic could be any that has at least one of the variables in the tuple as wildcard.
+Where `<fold-function>` could be any function that iterates over the elements of a list such as `filter`, `all`, etc.
+And `<logic>` could be any validation that has at least one of the variables in the tuple as wildcard.
 
 ## Examples
 
