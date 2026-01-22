@@ -1,15 +1,20 @@
-# Trash Tokens [SECURITY] [PERFORMANCE]
+# Trash Tokens [PERFORMANCE] [SECURITY]
 
 ## Description
+
 Validators should fully constrain the value of created or continuing outputs, instead of merely checking that required assets are present.
 Validators that only enforce subset inclusion allow attackers to inject arbitrary tokens into script-controlled UTxOs, and this can:
+
 - Permanently lock funds
 - Inflate min-ADA requirements
 - Cause transaction size / execution failures
 
+If the transaction size reaches to a point where the funds are permanently locked, this could be considered a security issue.
+
 ### Detection Logic
 
 **Pattern 1 - Subset value comparisons:**
+
 ```hs
 <value> `leq` <value>
 <value> `geq` <value>
@@ -17,9 +22,11 @@ Validators that only enforce subset inclusion allow attackers to inject arbitrar
 assetClassValueOf <var> <var> >= <var>
 assetClassValueOf <var> <var> <= <var>
 ```
+
 Where value could be the result of calling `TxOutValue` with an output or `assetClassValue` with an asset class and an amount.
 
 **Pattern 2 - Missing restriction of value:**
+
 ```hs
 length ((flattenValue . txOutValue) <var>) <= <var>
 ```
@@ -27,6 +34,7 @@ length ((flattenValue . txOutValue) <var>) <= <var>
 ## Examples
 
 ### Valid case
+
 ```hs
 -- Exact value equality
 validateExact :: Value -> AssetClass -> Integer -> Bool
@@ -47,6 +55,7 @@ checkForTokens utxo =
 ```
 
 ### Invalid case
+
 ```hs
 -- Subset check allows trash tokens
 invalidSubSet :: Value -> Asset -> Integer -> Bool
@@ -74,3 +83,4 @@ factoryNFT flattenVal asset = case [c | c <- flattenValue var,
     _ -> debugError "E19" True
 
 ```
+

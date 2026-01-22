@@ -1,4 +1,4 @@
-# Read Only Spend [PERFORMANCE]
+# Read Only Spend [PERFORMANCE] [SECURITY]
 
 ## Description
 
@@ -6,7 +6,7 @@ Validators should use reference inputs for read-only access to UTxOs instead of 
 
 - Unnecessary UTxO congestion and transaction conflicts
 - Wasted transaction fees for recreating unchanged UTxOs
-- DoS vectors where attackers can block legitimate operations
+- DoS vectors where attackers can block legitimate operations, in this case it could be considered a security issue.
 
 Reference inputs (Plutus V2+) allow validators to read UTxO data without spending them, enabling parallel access. Spending should only occur when the UTxO's datum or value actually changes.
 
