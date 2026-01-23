@@ -15,12 +15,13 @@ Reference inputs (Plutus V2+) allow validators to read UTxO data without spendin
 **Pattern 1 - Explicit address, datum and value check:**
 
 ```hs
-txOutAddress <input> == txOutAddress <output> &&
-txOutDatum <input> == txOutDatum <output> &&
-txOutValue <input> == txOutValue <output>
+txOutAddress         <input> == txOutAddress         <output> &&
+txOutDatum           <input> == txOutDatum           <output> &&
+txOutValue           <input> == txOutValue           <output> &&
+txOutReferenceScript <input> == txOutReferenceScript <output>
 ```
 
-The validator explictly checks that the address, datum and value of the UTxO being spent is not changed.
+The validator explictly checks that the address, datum, value and reference script of the UTxO being spent is not changed.
 
 `<input>` could be identified by `txInInfoResolved`, and `<output>` could be identified by `getContinuingOutputs`
 

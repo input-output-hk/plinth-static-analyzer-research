@@ -42,8 +42,8 @@ validNftMint ctx cs tn =
 validation1 :: Value -> CurrencySymbol -> TokenName -> Bool
 validation1 v cs tk am =
     all
-        (\(cs',tk',am’) ->
-            (cs' == cs && tk' == tk && am’ <= am) || (cs' == Ada.adaSymbol  && tk' == Ada.adaToken))
+        (\(cs',tk',am') ->
+            (cs' == cs && tk' == tk && am' <= am) || (cs' == Ada.adaSymbol  && tk' == Ada.adaToken))
     (flattenValue v)
 
 {- From AADA. This pattern may be obscured since the checks are performed through helper functions,
@@ -70,7 +70,7 @@ mkPolicy tn ctx = validate
 ```hs
 -- Checks for cs in minting while discarding token name and amount
 invalidNftMint :: ScriptContext -> CurrencySymbol -> TokenName -> Bool
-validNftMint ctx cs =
+invalidNftMint ctx cs =
  all (\(cs', _, _) -> cs' == cs ) (flattenValue $ txInfoMint (scriptContextTxInfo ctx))
 
 -- Validates token name and currency symbol  matches
