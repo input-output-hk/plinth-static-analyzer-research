@@ -6,9 +6,9 @@ This document summarizes findings from **36 Aiken audits** in the Cardano ecosys
 
 **Findings Classification**:
 
-- **Relevant findings**: 98
-- **May be relevant findings**: 56
-- **Not relevant findings**: 273
+- **Relevant findings**: 97
+- **May be relevant findings**: 52
+- **Not relevant findings**: 278
 - **Total findings**: 429
 
 ### Common Patterns
@@ -153,7 +153,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **May be relevant**
 
 - **NUV-202. Missing checks for some LendingDatum fields**: Datum fields not validated during creation, allowing unreasonable values.<br><ins>Detectable pattern</ins>: outputs with only partial datum validation [PARTIAL-UNVALIDATED-DATUM]
-- **NUV-301. CreateLend spend redeemer can be used to remove a lend UTxO**: Wildcard pattern matching on redeemer allows unintended redeemer types to trigger logic.<br><ins>Detectable pattern</ins>: wildcard pattern matching on redeemer types
+- **NUV-301. CreateLend spend redeemer can be used to remove a lend UTxO**: Wildcard pattern matching on redeemer allows unintended redeemer types to trigger logic.<br><ins>Detectable pattern</ins>: wildcard pattern matching on redeemer types [UNCHECKED-REDEEMER]
 
 **Not relevant**
 
@@ -326,14 +326,14 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 **May be relevant**
 
 - **ID-501. Wrong usage of DAO action validator script**: Pool validator expects DAO script hash to be used as staking credential, but DAO is implemented as spending validator (spend keyword) instead of staking validator (withdraw keyword), causing type mismatch that bypasses validation when executed in staking context.<br><ins>Detectable pattern</ins>: script hash used in staking context but corresponding validator declared with wrong validator type keyword
-- **ID-301. Zero spam**: Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. It should ensure a minimal amount is actually transacted. Note: could potentially be detected as operations that don't change state [UNCHANGED-STATE]
 
 **Not relevant**
 
-- **ID-302. Pool invariant can be violated at dao change**: DAO action allows changing amplification parameter an2n without validating the stableswap invariant relationship with reserve amounts, causing inconsistent swap behavior. Requires understanding protocol’s business logic
-- **ID-202. Inconsistent protocol fees**: Protocol validates individual bounds for lp_fee_num and protocol_fee_num but doesn't enforce their relationship, allowing lp_fee_num + protocol_fee_num > denom and breaking all swap transactions. Requires understanding business logic to determine which fields should have relational constraints
 - **ID-101. Order types may be vulnerable to frontrunning**: Pool doesn't restrict which order contracts can interact with it. Design decision about permissionless interoperability
 - **ID-102. Incorrect assumption in code**: Default branch in swap validation assumes specific delta conditions without checking them, allowing unexpected cases to execute. Logic bug requiring semantic understanding of valid swap cases and business logic
+- **ID-202. Inconsistent protocol fees**: Protocol validates individual bounds for lp_fee_num and protocol_fee_num but doesn't enforce their relationship, allowing lp_fee_num + protocol_fee_num > denom and breaking all swap transactions. Requires understanding business logic to determine which fields should have relational constraints
+- **ID-301. Zero spam**: Validator allows Swap, Deposit, and Redeem transactions with zero amounts, enabling DoS attacks through repeated spam. It should ensure a minimal amount is actually transacted, but this "minimal amount" requires semantic understanding of the protocol
+- **ID-302. Pool invariant can be violated at dao change**: DAO action allows changing amplification parameter an2n without validating the stableswap invariant relationship with reserve amounts, causing inconsistent swap behavior. Requires understanding protocol’s business logic
 
 ## AMM Dex v2
 
@@ -411,7 +411,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **SSW-101. Settings datum size is limited forever by the initially locked ADA**: Settings validator enforces exact value equality preventing adding ADA when datum grows and requires higher minUTxO.<br><ins>Detectable pattern</ins>: exact ADA/lovelace equality on continuing output values without accounting for variable minUTxO requirements [STRICT-VALUE-EQUALITY]
 - **SSW-202. Metadata output datum not checked in pool create**: Pool creation doesn't validate metadata output has datum, potentially creating unspendable UTxO if metadata address is a script.<br><ins>Detectable pattern</ins>: outputs to addresses without datum validation [UNVALIDATED-DATUM]
 - **SSW-308. No checks on settings UTxO when it is created**: Settings NFT minting policy validates minting but not destination address or initial UTxO state.<br><ins>Detectable pattern</ins>: minting without validating initial conditions, but determining correct initial state requires protocol understanding [MISSING-ADDRESS-VALIDATION]
-- **SSW-313. UpdatePoolFees doesn't require the settings UTxO as reference input**: Validator requires settings UTxO as reference input for UpdatePoolFees but doesn't use it, creating unnecessary off-chain requirement.<br><ins>Detectable pattern</ins>: reference input required but never accessed in validation logic
 
 **May be relevant**
 
@@ -436,6 +435,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **SSW-310. Formula simplifications in do_deposit**: Deposit amount calculations use intermediate "change" variables that can be eliminated through algebraic simplification. Requires mathematical reasoning and understanding formula equivalence
 - **SSW-311. Asymmetry of deposit operation**: Deposit operation is asymmetric in corner cases due to integer rounding, deviating from theoretical AMM symmetry. Requires understanding protocol’s AMM specific business logic
 - **SSW-312. Optimizable manipulation of output value in has_expected_pool_value**: Multiple function calls traverse same value structure separately instead of single combined traversal. Requires understanding function behavior and data structure traversal patterns
+- **SSW-313. UpdatePoolFees doesn't require the settings UTxO as reference input**: Validator requires settings UTxO as reference input for UpdatePoolFees but doesn't use it, creating unnecessary off-chain requirement. No clear syntatical pattern.
 - **SSW-314. PoolState not used anymore**: Type definition no longer used after refactoring remains in the codebase. Dead code issue already caught by standard tooling
 
 ## Payment Service
@@ -492,7 +492,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 - **3.4. Double satisfaction between 2 TRSC instances when sweeping both**: Multiple Treasury UTxOs validate against same aggregate donation outputs, allowing single donation to satisfy multiple validators.<br><ins>Detectable pattern</ins>: aggregate value validation without uniqueness check [DOUBLE-SATISFACTION]
 - **3.6. Steal withdraw rewards from treasury contract with double satisfaction**: Treasury withdrawal validates outputs without preventing treasury inputs, allowing combination with other operations to satisfy checks with single payment.<br><ins>Detectable pattern</ins>: aggregate output validation without input restrictions [DOUBLE-SATISFACTION]
-- **3.17. DoSing treasury sweep UTxOs**: Treasury sweep allows arbitrarily small donations enabling DoS through repeated minimal sweeps.<br><ins>Detectable pattern</ins>: operations allowing insignificant state changes [UNCHANGED-STATE]
 
 **Not relevant**
 
@@ -502,6 +501,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **3.9. Modification forces withdrawal of matured non-ada payouts**: Validator uses exact equality for non-ADA assets but inequality for ADA, forcing matured non-ADA payouts to be withdrawn during modification while ADA payouts can remain. Requires understanding intended payout withdrawal design
 - **3.14. Committee can steal malformed vendor inputs while re-organizing treasury inputs**: Reorganize validates treasury inputs ≤ outputs but allows treasury inputs, enabling combination with operations that add treasury outputs to satisfy checks while stealing funds. Requires understanding how specific operations interact
 - **3.16. minAda is sweepable from vendor utxo with unmatured payments**: Sweep operation incorrectly accounts for minimum ADA requirements when creating continuing outputs, forcing sweeper to provide additional ADA. Requires understanding protocol's minUTxO handling
+- **3.17. DoSing treasury sweep UTxOs**: Treasury sweep allows arbitrarily small donations enabling DoS through repeated minimal sweeps. Understanding what constitutes "significant" state changes requires semantic context.
 - **4.1. payout_upperbound from TreasuryConfiguration is unused**: Configuration field not used in validation logic. Dead code issue already caught by standard tooling
 - **4.2. Fund action isn't enforced to be witnessed by the vendor**: Fund operation doesn't explicitly validate vendor signature, relying on permission configuration that could be incorrectly initialized. Requires understanding protocol's authorization model
 - **4.3. Modify doesn't allow for an increase of payouts**: Modify operation disallows treasury inputs, preventing increase in total payout values. Protocol design decision about allowed operations
@@ -561,7 +561,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 - **TRS-001. Treasury Sweep and Vendor Malformed Double Satisfaction**: Multiple Treasury UTxOs validate against the same aggregate donation in transaction outputs, allowing single donation to satisfy multiple validators and steal funds.<br><ins>Detectable pattern</ins>: aggregate value validation without uniqueness check [DOUBLE-SATISFACTION]
 - **TRS-104. Treasury Fund DS attack vector**: Multiple Treasury UTxOs from different scripts referencing the same Vendor credential can be batched, with both validators satisfied by same Vendor outputs, allowing fund theft.<br><ins>Detectable pattern</ins>: aggregate output validation without uniqueness check [DOUBLE-SATISFACTION]
-- **TRS-203. Treasury Sweep DDOS**: Treasury Sweep allows donating minimal amounts (even 1 lovelace) enabling DoS attacks through repeated spam transactions that technically pass validation but don't meaningfully reduce treasury.<br><ins>Detectable pattern</ins>: operations allowing states to be unchanged [UNCHANGED-STATE]
 
 **Not relevant**
 
@@ -570,6 +569,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **TRS-101. Treasury Fund: Vendor UTxOs can be created with insufficient funds**: Validator checks aggregate payout values match total but doesn't validate each individual Vendor UTxO has sufficient value to cover its datum's payouts, creating unspendable UTxOs. Requires understanding protocol business logic and datum field semantics
 - **TRS-105. Funds from malformed vendor UTxOs can be stolen**: Vendor Malformed validator checks funds sent to Treasury without forbidding Treasury inputs, allowing combination with Treasury operations where same outputs satisfy both validators. Requires understanding multi-validator coordination and business logic
 - **TRS-201. Vendor Sweep: incompatible with Treasury Reorganize**: SweepVendor allows spending Treasury UTxOs but is only valid after expiration while Reorganize is only valid before expiration, creating an impossible operation combination. Requires understanding protocol temporal constraints and business logic
+- **TRS-203. Treasury Sweep DDOS**: Treasury Sweep allows donating minimal amounts (even 1 lovelace) enabling DoS attacks through repeated spam transactions that technically pass validation but don't meaningfully reduce treasury. Understanding what constitutes "meaningful" state changes requires semantic context.
 
 ## Splash DAO
 
@@ -703,7 +703,6 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **May be relevant**
 
-- **CCA-201 Empty transactions**: Transactions with no valid updates can reshuffle UTxOs, blocking legitimate backend operations.<br><ins>Detectable pattern</ins>: Allowing transactions without enforcing meaningful actions [UNCHANGED-STATE]
 - **CCA-204. Double satisfaction on Bet owner's compensation**: Validator checks only own script inputs when validating compensation payment to Bet owner's address, allowing multiple scripts expecting payment to the same address to be satisfied with single payment.<br><ins>Detectable pattern</ins>: value aggregation filtering by address without script input uniqueness check [DOUBLE-SATISFACTION]
 
 **Not relevant**
@@ -713,6 +712,7 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 - **CCA-101. UpdateRequests can be invalidated**: Validator filters UpdateRequests by signature validity but doesn't reject transactions containing incorrectly signed requests, allowing attackers to remove valid requests from the chain and steal their Ada. Requires understanding protocol's request validation model
 - **CCA-102. The backend key can take over the protocol**: All UTxO types share the same validator, allowing backend to use FulfilBet redeemer to be missused e.g. on Admin UTxO and modify protocol ownership or halt protocol. Requires understanding which redeemers should be valid for which UTxO types
 - **CCA-103. Unaccounted Bet funds**: Balance calculation doesn't account for fees locked in Bet UTxO, allowing unaccounted funds to be stolen when the user wins. Requires understanding protocol's accounting model and intended fund flows
+- **CCA-201 Empty transactions**: Transactions with no valid updates can reshuffle UTxOs, blocking legitimate backend operations. Understanding what constitutes "meaningful" state changes requires semantic context.
 - **CCA-202. No key redundancy and rotation possibility**: Hardcoded keys with no redundancy or rotation mechanism make the protocol fragile to loss or compromise (key loss halts protocol, key compromise enables fund theft). Protocol governance and key management design issue
 - **CCA-203. Non-transparent off-chain computation**: Critical payout values are computed off-chain, passed as redeemers and blindly trusted on-chain, risking bank drainage. Requires understanding which calculations should be on-chain versus delegated to off-chain
 - **CCA-302. Single key can withdraw Bank funds**: Backend key alone can withdraw all Bank funds by creating arbitrary winning UpdateRequests/Bets, while Bank withdrawal requires two keys. Protocol governance and trust model issue
@@ -920,12 +920,12 @@ These Cardano-native tokens are redeemable on the platform to purchase new eBook
 
 **May be relevant**
 
-- **FTA2-001. The same bond NFT can be minted multiple times**: Token name uses bytearray.push with UTxO index without validating index < 256, causing wraparound where indices 1 and 257 produce identical token names and allowing duplicate NFT minting. Aiken-specific issue (bytearray.push wraps at 256); requires verification if equivalent issue exists in Haskell/Plinth.
 - **FTA2-201. Double satisfaction in the loan amount payment**: Lender pays loan amount directly to borrower's address without unique identifier, allowing malicious lender to batch with another protocol's operation to satisfy both with single payment.<br><ins>Detectable pattern</ins>: value aggregation filtering by address without datum uniqueness check [DOUBLE-SATISFACTION]
 - **FTA2-405. Undocumented assumptions and unchecked fields**: Several datum fields are assumed to be honest but not validated, allowing malformed UTxOs.<br><ins>Detectable pattern</ins>: output creation with incomplete datum field validation [PARTIAL-UNVALIDATED-DATUM]
 
 **Not relevant**
 
+- **FTA2-001. The same bond NFT can be minted multiple times**: Token name uses bytearray.push with UTxO index without validating index < 256, causing wraparound where indices 1 and 257 produce identical token names and allowing duplicate NFT minting. Aiken has a similar function `consByteString`, but this issue was fixed in PlutusV3.
 - **FTA2-101. Lender and borrower bonds use the same policy**: Minting policies for lender and borrower bonds are identical because bondType variable is unused, preventing simultaneous minting required by validator. Logic bug requiring understanding the protocol's business logic
 - **FTA2-102. Repayments are locked when active loan is claimed**: Claiming active loan burns lender NFT, preventing withdrawal of already-repaid installments. Protocol design issue that requires understanding the business logic
 - **FTA2-301 Script hashes in the code are placeholders**: Hardcoded script hashes are invalid placeholders, making the protocol undeployable. Build and deployment issue
