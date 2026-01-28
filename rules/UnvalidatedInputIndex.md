@@ -11,7 +11,7 @@ Validators that use redeemer-provided indices to select specific inputs must val
 
 ## Detection logic
 
-### Pattern - Input/reference input selection by redeemer index:
+**Pattern - Input/reference input selection by redeemer index**
 
 ```hs
 <list> !! <redeemer-field>
@@ -24,7 +24,7 @@ Where `<list>` is one of:
 
 And `<redeemer-field>` is a field extracted from the redeemer parameter.
 
-### Missing validation:
+**Missing validation**
 
 After pattern `<var> = <list> !! <redeemer-field>`, absence of:
 

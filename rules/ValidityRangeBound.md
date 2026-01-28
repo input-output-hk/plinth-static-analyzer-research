@@ -15,7 +15,7 @@ The validity range (`lowerBound`, `upperBound`) defines the time window when a t
 
 ## Detection Logic
 
-### Missing validation:
+**Missing validation**
 
 Absence of range length constraint of the form:
 

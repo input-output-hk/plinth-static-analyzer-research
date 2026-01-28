@@ -1,4 +1,4 @@
-# FixedStructureMap [CODE-QUALITY]
+# Fixed Structure Map [CODE-QUALITY]
 
 ## Description
 

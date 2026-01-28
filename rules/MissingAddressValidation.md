@@ -1,4 +1,4 @@
-# Incomplete token validation [SECURITY]
+# Missing Address Validation [SECURITY]
 
 ## Description
 Validators and minting policies should explicitly verify the destination address (payment + staking credentials) of:

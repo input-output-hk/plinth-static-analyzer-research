@@ -1,4 +1,4 @@
-# ZipWithoutLengthCheck [CODE-QUALITY] [SECURITY]
+# Zip Without Length Check [CODE-QUALITY] [SECURITY]
 
 ## Description
 

@@ -6,7 +6,7 @@ Helper functions that only pattern match or call another function with fixed arg
 
 ## Detection logic
 
-**Pattern 1 - Function only pattern matches and forwards values:\***
+**Pattern 1 - Function only pattern matches and forwards values:**
 
 ```hs
 <fun> :: <typeA> -> <typeB>
@@ -17,7 +17,7 @@ Helper functions that only pattern match or call another function with fixed arg
 Where `<typeA>` and `<typeB>` could be any type, and `<constructor>` refers to the constructors of `<typeA>`.
 It could be preferable, in some cases, to inline the pattern matching instead of creating a helper function.
 
-**Pattern 2 - Function immediatly calls another function:\***
+**Pattern 2 - Function immediatly calls another function:**
 
 ```hs
 <fun1> :: <typeA> -> <typeB>

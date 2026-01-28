@@ -1,4 +1,4 @@
-# Unvalidated reference script [PERFORMANCE]
+# Unvalidated Reference Script [PERFORMANCE]
 
 ## Description
 
