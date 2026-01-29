@@ -36,7 +36,7 @@ validatePoolUpdate :: TxInfo -> Bool
 validatePoolUpdate info =
     let scriptInputs = filter isPoolScript (txInfoInputs info)
         hasPoolInput = not (null scriptInputs)
-        -- CRITICAL: Verify the pool input uses the correct redeemer
+        -- Important: Verify the pool input uses the correct redeemer
         correctRedeemer = case scriptInputs of
             [txIn] -> case lookup (Spending (txInInfoOutRef txIn)) (txInfoRedeemers info) of
                 Just (Redeemer r) -> case PlutusTx.fromBuiltinData r of

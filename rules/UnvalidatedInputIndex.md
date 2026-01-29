@@ -56,7 +56,7 @@ validSettingsUpdate newFee idx =
         settingsInput = inputs !! idx
         settingsOutput = txInInfoResolved settingsInput
 
-        -- Critical: Verify NFT is present at this input
+        -- Important: Verify NFT is present at this input
         hasNFT = assetClassValueOf (txOutValue settingsOutput) settingsNFT == 1
 
         -- Extract and validate settings datum

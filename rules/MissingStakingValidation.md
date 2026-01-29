@@ -74,7 +74,7 @@ validateOutput expectedAddr =
         -- Validate payment credential
         validAddress = txOutAddress scriptOutput == expectedAddr
 
-        -- Critical: Validate staking credential
+        -- Important: Validate staking credential
         validStaking = case addressStakingCredential (txOutAddress scriptOutput) of
             Nothing -> True  -- No staking credential is acceptable
             _ -> False

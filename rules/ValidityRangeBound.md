@@ -54,7 +54,7 @@ validDeadlineCheck MyDatum{deadline} =
             UpperBound (Finite t) _ -> t
             _ -> traceError "Invalid upper bound"
 
-        -- Critical: Restrict validity range length
+        -- Important: Restrict validity range length
         -- Only allow ranges up to 2 hours (7_200_000 milliseconds)
         maxRangeLength :: POSIXTime
         maxRangeLength = POSIXTime 7_200_000
