@@ -15,13 +15,15 @@ This document summarizes findings from **5 Plutarch audits** in the Cardano ecos
 
 Common issues in Plutarch smart contracts include:
 
-1. **Unvalidated Datum (4 occurrences) - [UNVALIDATED-DATUM]**: Validator fails to validate datum fields on continuing outputs, allowing datum tampering and collateral theft.
+1. **Operations Without State Changes (4 occurrences) - [UNCHANGED-STATE]**: Validators that allow operations to succeed without modifying any state, enabling denial-of-service attacks by repeatedly executing transactions that pass validation but accomplish nothing.
 
-2. **Incomplete Token Validation (3 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]**: Validators that check currency symbol but not token name, or vice versa. This pattern allows attackers to use wrong tokens (with correct symbol but wrong name) or mint unauthorized tokens under the same policy, leading to vote manipulation and authentication bypass.
+2. **Unvalidated Datum (4 occurrences) - [UNVALIDATED-DATUM]**: Validator fails to validate datum fields on continuing outputs, allowing datum tampering and collateral theft.
 
-3. **Trash Tokens (2 occurrences) - [TRASH-TOKENS]**: Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens.
+3. **Incomplete Token Validation (3 occurrences) - [INCOMPLETE-TOKEN-VALIDATION]**: Validators that check currency symbol but not token name, or vice versa. This pattern allows attackers to use wrong tokens (with correct symbol but wrong name) or mint unauthorized tokens under the same policy, leading to vote manipulation and authentication bypass.
 
-4. **Missing Address Validation (2 occurrence) - [MISSING-ADDRESS-VALIDATION]**: Minting policy that validates token properties without verifying the destination address, allowing critical borrow tokens to be redirected and enabling market drainage attacks.
+4. **Trash Tokens (2 occurrences) - [TRASH-TOKENS]**: Validators using subset checks instead of exact equality for value validation, allowing attackers to bloat UTxOs with arbitrary tokens.
+
+5. **Missing Address Validation (2 occurrence) - [MISSING-ADDRESS-VALIDATION]**: Minting policy that validates token properties without verifying the destination address, allowing critical borrow tokens to be redirected and enabling market drainage attacks.
 
 ## Agora, Agora pro
 
